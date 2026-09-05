@@ -1,0 +1,1670 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "meta": {
+  "target": "Terrestrial AI Data Center Siting and Economics Model",
+  "url": "https://<owner>.github.io/TerrestrialDatacenterSim/",
+  "app_version_at_authoring": "v0.4",
+  "catalog_version": "1.0.0",
+  "authored": "2026-09-05",
+  "author": "Test plan generated for Libor Ballaty (Arion Networks s.r.o.)",
+  "status": "Draft for Review",
+  "purpose": "Executable spec an LLM/browser agent follows to verify 100% of actions, dropdowns, inputs, modals and readouts in the app AND that the numbers produced are physically/economically reasonable.",
+  "companion_doc": "TerrestrialDatacenterSim-test-plan.md",
+  "notes": [
+   "Single-file client-side HTML calculator; no server round-trip. Always click Recalculate (#calc) before reading KPIs for determinism.",
+   "Control DOM ids are stable and equal data-test-id. If an id is not found, re-enumerate the DOM and log DRIFT.",
+   "The power mix is dynamic: rows mixOpt{i}/mixMW{i}/mixOrd{i}/mixDel{i} are created by the template engine; the manifest lists the template select and add button, and the reconciler treats per-row ids as dom_only INFO, not failures.",
+   "The app auto-loads data/*.json on a served origin; on file:// it uses embedded presets. Tests state which mode they assume."
+  ]
+ },
+ "runner_protocol": {
+  "io_primitives": {
+   "setNum": "el=byId(id); el.value=String(v); dispatch input+change",
+   "setSel": "el=byId(id); el.value=v; dispatch change",
+   "recalc": "byId('calc').click()",
+   "kpi": "byId(id).textContent.trim()",
+   "editable": "!(el.disabled||el.readOnly||el.offsetParent===null)"
+  },
+  "determinism": "Force #calc before every read; #reset between destructive suites.",
+  "result_kpi_ids": [
+   "tok",
+   "capexMW",
+   "kwmo",
+   "ttp",
+   "pueMW",
+   "gpuh",
+   "env",
+   "avail"
+  ],
+  "self_heal": "On missing id, re-enumerate inputs/selects/buttons; log DRIFT(old->new) or MISSING.",
+  "coverage_target": "100% of control_registry entries + all reasonableness_rules run."
+ },
+ "control_registry": {
+  "top_bar_actions": [
+   {
+    "id": "calc",
+    "tab": "global",
+    "label": "Recalculate"
+   },
+   {
+    "id": "reset",
+    "tab": "global",
+    "label": "Reset base scenario"
+   },
+   {
+    "id": "download",
+    "tab": "global",
+    "label": "Download scenario JSON"
+   },
+   {
+    "id": "breakeven",
+    "tab": "global",
+    "label": "Break-even solver"
+   },
+   {
+    "id": "runtests",
+    "tab": "global",
+    "label": "Run self-tests"
+   },
+   {
+    "id": "openSpec",
+    "tab": "global",
+    "label": "Specification"
+   },
+   {
+    "id": "specWindow",
+    "tab": "global",
+    "label": "⧉ Open in its own window"
+   },
+   {
+    "id": "specClose",
+    "tab": "global",
+    "label": "Close"
+   },
+   {
+    "id": "beClose",
+    "tab": "global",
+    "label": "Close"
+   },
+   {
+    "id": "testClose",
+    "tab": "global",
+    "label": "Close"
+   }
+  ],
+  "tabs": [
+   {
+    "id": "site",
+    "label": "Site"
+   },
+   {
+    "id": "power",
+    "label": "Power"
+   },
+   {
+    "id": "climate",
+    "label": "Climate & cooling"
+   },
+   {
+    "id": "build",
+    "label": "Land & construction"
+   },
+   {
+    "id": "compute",
+    "label": "Compute"
+   },
+   {
+    "id": "econ",
+    "label": "Lifecycle"
+   },
+   {
+    "id": "time",
+    "label": "Timeline"
+   }
+  ],
+  "numeric_inputs": [
+   {
+    "id": "lat",
+    "tab": "site",
+    "label": "Latitude",
+    "default": 39.04,
+    "step": 0.01,
+    "unit": ""
+   },
+   {
+    "id": "lon",
+    "tab": "site",
+    "label": "Longitude",
+    "default": -77.49,
+    "step": 0.01,
+    "unit": ""
+   },
+   {
+    "id": "mw",
+    "tab": "site",
+    "label": "Target productive IT, MW",
+    "default": 40,
+    "min": 1,
+    "step": 1,
+    "unit": "MW",
+    "dir": "mw-up->capex-up"
+   },
+   {
+    "id": "startYear",
+    "tab": "power",
+    "label": "Project start year",
+    "default": 2027,
+    "step": 1,
+    "unit": "year"
+   },
+   {
+    "id": "tariff",
+    "tab": "power",
+    "label": "Electricity tariff, $/MWh",
+    "default": 78,
+    "step": 1,
+    "unit": "$/MWh",
+    "dir": "tariff-up->tokc-up"
+   },
+   {
+    "id": "tariffEsc",
+    "tab": "power",
+    "label": "Tariff escalation, %/yr",
+    "default": 2,
+    "step": 0.5,
+    "unit": "%/yr"
+   },
+   {
+    "id": "capch",
+    "tab": "power",
+    "label": "Capacity charge, $/kW-month",
+    "default": 8,
+    "step": 0.5,
+    "unit": "$/kW-mo"
+   },
+   {
+    "id": "icCost",
+    "tab": "power",
+    "label": "Interconnection + substation, $M / MW facility",
+    "default": 0.8,
+    "step": 0.1,
+    "unit": "$M/MW"
+   },
+   {
+    "id": "queue",
+    "tab": "power",
+    "label": "Interconnection queue, months",
+    "default": 42,
+    "step": 1,
+    "unit": "mo",
+    "dir": "queue-up->ttp-up"
+   },
+   {
+    "id": "saidi",
+    "tab": "power",
+    "label": "Grid reliability SAIDI, min/yr",
+    "default": 120,
+    "step": 10,
+    "unit": "min/yr"
+   },
+   {
+    "id": "ci",
+    "tab": "power",
+    "label": "Grid carbon intensity, gCO₂/kWh",
+    "default": 300,
+    "step": 10,
+    "unit": "gCO2/kWh"
+   },
+   {
+    "id": "ciEsc",
+    "tab": "power",
+    "label": "Grid intensity trajectory, %/yr",
+    "default": -3,
+    "step": 0.5,
+    "unit": "%/yr"
+   },
+   {
+    "id": "co2",
+    "tab": "power",
+    "label": "Carbon price, $/tCO₂",
+    "default": 0,
+    "step": 5,
+    "unit": "$/tCO2"
+   },
+   {
+    "id": "solarCF",
+    "tab": "power",
+    "label": "Solar capacity factor",
+    "default": 0.19,
+    "min": 0,
+    "step": 0.01,
+    "unit": "frac"
+   },
+   {
+    "id": "windCF",
+    "tab": "power",
+    "label": "Wind capacity factor",
+    "default": 0.25,
+    "min": 0,
+    "step": 0.01,
+    "unit": "frac"
+   },
+   {
+    "id": "hydroMW",
+    "tab": "power",
+    "label": "Contractable hydro / existing-plant MW nearby",
+    "default": 0,
+    "step": 10,
+    "unit": "MW"
+   },
+   {
+    "id": "gasPrice",
+    "tab": "power",
+    "label": "Fuel: gas price, $/MWh_th",
+    "default": 12,
+    "step": 1,
+    "unit": "$/MWh_th"
+   },
+   {
+    "id": "fuelEsc",
+    "tab": "power",
+    "label": "Fuel escalation, %/yr",
+    "default": 2,
+    "step": 0.5,
+    "unit": "%/yr"
+   },
+   {
+    "id": "flexFrac",
+    "tab": "power",
+    "label": "Workload flexibility fraction (curtailable)",
+    "default": 0.2,
+    "min": 0,
+    "step": 0.05,
+    "unit": "frac"
+   },
+   {
+    "id": "mixMW0",
+    "tab": "power",
+    "label": "Mix row 1 MW/MWh",
+    "default": 53,
+    "min": 0,
+    "step": 1,
+    "unit": ""
+   },
+   {
+    "id": "mixOrd0",
+    "tab": "power",
+    "label": "Mix row 1 order month",
+    "default": 0,
+    "min": 0,
+    "step": 1,
+    "unit": ""
+   },
+   {
+    "id": "mixMW1",
+    "tab": "power",
+    "label": "Mix row 2 MW/MWh",
+    "default": 53,
+    "min": 0,
+    "step": 1,
+    "unit": ""
+   },
+   {
+    "id": "mixOrd1",
+    "tab": "power",
+    "label": "Mix row 2 order month",
+    "default": 0,
+    "min": 0,
+    "step": 1,
+    "unit": ""
+   },
+   {
+    "id": "pueManual",
+    "tab": "climate",
+    "label": "Manual PUE",
+    "default": 1.3,
+    "step": 0.01,
+    "unit": "",
+    "gated_by": "pueMode"
+   },
+   {
+    "id": "twb",
+    "tab": "climate",
+    "label": "Design wet-bulb 99.6%, °C",
+    "default": 26,
+    "step": 0.5,
+    "unit": "°C"
+   },
+   {
+    "id": "ffree",
+    "tab": "climate",
+    "label": "Free-cooling hours fraction at facility supply temperature",
+    "default": 0.62,
+    "min": 0,
+    "step": 0.01,
+    "unit": ""
+   },
+   {
+    "id": "rhoEcon",
+    "tab": "climate",
+    "label": "Economiser power ratio ρ",
+    "default": 0.25,
+    "step": 0.05,
+    "unit": ""
+   },
+   {
+    "id": "etaElec",
+    "tab": "climate",
+    "label": "Electrical losses η_elec",
+    "default": 0.06,
+    "step": 0.01,
+    "unit": ""
+   },
+   {
+    "id": "kAux",
+    "tab": "climate",
+    "label": "Auxiliary κ_aux",
+    "default": 0.02,
+    "step": 0.01,
+    "unit": ""
+   },
+   {
+    "id": "waterPrice",
+    "tab": "climate",
+    "label": "Water price, $/m³",
+    "default": 1.2,
+    "step": 0.1,
+    "unit": "$/m3"
+   },
+   {
+    "id": "tFac",
+    "tab": "build",
+    "label": "Single facility cost, $M / MW IT",
+    "default": 12,
+    "step": 0.5,
+    "unit": "$M/MW",
+    "gated_by": "facMode"
+   },
+   {
+    "id": "land",
+    "tab": "build",
+    "label": "Industrial land, $/m²",
+    "default": 150,
+    "step": 5,
+    "unit": "$/m2"
+   },
+   {
+    "id": "cci",
+    "tab": "build",
+    "label": "Construction cost index (US avg = 1.00)",
+    "default": 1,
+    "step": 0.01,
+    "unit": "index"
+   },
+   {
+    "id": "shell",
+    "tab": "build",
+    "label": "Shell, $/m² gross",
+    "default": 2200,
+    "step": 50,
+    "unit": "$/m2"
+   },
+   {
+    "id": "siteprep",
+    "tab": "build",
+    "label": "Site preparation, $/m² site",
+    "default": 60,
+    "step": 5,
+    "unit": "$/m2"
+   },
+   {
+    "id": "mep",
+    "tab": "build",
+    "label": "MEP, $M / MW IT (Tier III)",
+    "default": 6.3,
+    "step": 0.1,
+    "unit": "$M/MW"
+   },
+   {
+    "id": "coolCap",
+    "tab": "build",
+    "label": "Cooling plant, $M / MW IT",
+    "default": 1,
+    "step": 0.1,
+    "unit": "$M/MW"
+   },
+   {
+    "id": "fitout",
+    "tab": "build",
+    "label": "Fit-out, $k / rack",
+    "default": 120,
+    "step": 5,
+    "unit": "$k/rack"
+   },
+   {
+    "id": "fibreFixed",
+    "tab": "build",
+    "label": "Fibre entry, $M fixed + $k/km to IXP",
+    "default": 2,
+    "step": 0.5,
+    "unit": ""
+   },
+   {
+    "id": "ixpKm",
+    "tab": "build",
+    "label": "Distance to nearest IXP, km",
+    "default": 30,
+    "step": 5,
+    "unit": "km"
+   },
+   {
+    "id": "soft",
+    "tab": "build",
+    "label": "Soft costs, % hard",
+    "default": 12,
+    "step": 1,
+    "unit": "%"
+   },
+   {
+    "id": "cont",
+    "tab": "build",
+    "label": "Contingency, % hard",
+    "default": 10,
+    "step": 1,
+    "unit": "%"
+   },
+   {
+    "id": "gross",
+    "tab": "build",
+    "label": "Gross-to-white-space ratio",
+    "default": 1.8,
+    "step": 0.1,
+    "unit": ""
+   },
+   {
+    "id": "siteRatio",
+    "tab": "build",
+    "label": "Site-to-building ratio",
+    "default": 3,
+    "step": 0.1,
+    "unit": ""
+   },
+   {
+    "id": "incentive",
+    "tab": "build",
+    "label": "Incentive: capex credit, %",
+    "default": 0,
+    "step": 1,
+    "unit": ""
+   },
+   {
+    "id": "rkw",
+    "tab": "compute",
+    "label": "Unit TDP, kW",
+    "default": 135,
+    "step": 1,
+    "unit": "kW"
+   },
+   {
+    "id": "gpus",
+    "tab": "compute",
+    "label": "Accelerators / unit",
+    "default": 72,
+    "step": 1,
+    "unit": "count"
+   },
+   {
+    "id": "rcost",
+    "tab": "compute",
+    "label": "Compute cost / unit, $M",
+    "default": 4,
+    "step": 0.1,
+    "unit": "$M",
+    "dir": "rcost-up->tokc-up"
+   },
+   {
+    "id": "itoh",
+    "tab": "compute",
+    "label": "IT overhead beyond TDP, %",
+    "default": 10,
+    "step": 1,
+    "unit": "%"
+   },
+   {
+    "id": "spare",
+    "tab": "compute",
+    "label": "Installed spare capacity, %",
+    "default": 5,
+    "step": 1,
+    "unit": "%"
+   },
+   {
+    "id": "rackm2",
+    "tab": "compute",
+    "label": "Rack footprint incl. aisle share, m²",
+    "default": 4.5,
+    "step": 0.5,
+    "unit": "m2"
+   },
+   {
+    "id": "tpsmw",
+    "tab": "compute",
+    "label": "Inference throughput, tokens/s/MW",
+    "default": 2800000,
+    "step": 100000,
+    "unit": "tok/s/MW",
+    "dir": "tpsmw-up->tokc-down"
+   },
+   {
+    "id": "util",
+    "tab": "compute",
+    "label": "Utilization, %",
+    "default": 75,
+    "step": 1,
+    "unit": "%",
+    "dir": "util-up->tokc-down"
+   },
+   {
+    "id": "idle",
+    "tab": "compute",
+    "label": "Electrical load factor L = a + (1−a)·U; a",
+    "default": 0.5,
+    "step": 0.05,
+    "unit": ""
+   },
+   {
+    "id": "refresh",
+    "tab": "compute",
+    "label": "Compute refresh interval, years",
+    "default": 3,
+    "step": 1,
+    "unit": "yr"
+   },
+   {
+    "id": "years",
+    "tab": "econ",
+    "label": "Analysis horizon, years",
+    "default": 15,
+    "step": 1,
+    "unit": "yr",
+    "dir": "years-up->tokc-down"
+   },
+   {
+    "id": "disc",
+    "tab": "econ",
+    "label": "Discount rate, %",
+    "default": 8,
+    "step": 0.5,
+    "unit": "%",
+    "dir": "disc-up->tokc-up"
+   },
+   {
+    "id": "tFacLife",
+    "tab": "econ",
+    "label": "Facility economic life, years",
+    "default": 15,
+    "step": 1,
+    "unit": "yr"
+   },
+   {
+    "id": "maint",
+    "tab": "econ",
+    "label": "Maintenance, % facility capex/yr",
+    "default": 2,
+    "step": 0.5,
+    "unit": "%/yr"
+   },
+   {
+    "id": "ptax",
+    "tab": "econ",
+    "label": "Property tax, % facility capex/yr",
+    "default": 1,
+    "step": 0.1,
+    "unit": "%/yr"
+   },
+   {
+    "id": "ins",
+    "tab": "econ",
+    "label": "Insurance, % facility capex/yr",
+    "default": 0.4,
+    "step": 0.1,
+    "unit": "%/yr"
+   },
+   {
+    "id": "sec",
+    "tab": "econ",
+    "label": "Security (physical + cyber), % facility capex/yr",
+    "default": 0.3,
+    "step": 0.1,
+    "unit": "%/yr"
+   },
+   {
+    "id": "fteMW",
+    "tab": "econ",
+    "label": "Staff, FTE / MW IT",
+    "default": 0.6,
+    "step": 0.1,
+    "unit": "FTE/MW"
+   },
+   {
+    "id": "fteCost",
+    "tab": "econ",
+    "label": "Staff cost, $k / FTE / yr",
+    "default": 120,
+    "step": 5,
+    "unit": "$k/FTE"
+   },
+   {
+    "id": "decom",
+    "tab": "econ",
+    "label": "Decommissioning at horizon, % facility capex",
+    "default": 2,
+    "step": 0.5,
+    "unit": "%"
+   },
+   {
+    "id": "tOpex",
+    "tab": "econ",
+    "label": "Single facility opex, %/yr",
+    "default": 4,
+    "step": 0.5,
+    "unit": "%/yr",
+    "gated_by": "opexMode"
+   },
+   {
+    "id": "tAvail",
+    "tab": "econ",
+    "label": "Manual availability, %",
+    "default": 99.5,
+    "step": 0.1,
+    "unit": "%",
+    "gated_by": "availMode"
+   },
+   {
+    "id": "permit",
+    "tab": "time",
+    "label": "Permitting, months",
+    "default": 12,
+    "step": 1,
+    "unit": "mo"
+   },
+   {
+    "id": "design",
+    "tab": "time",
+    "label": "Design, months",
+    "default": 6,
+    "step": 1,
+    "unit": "mo"
+   },
+   {
+    "id": "construct",
+    "tab": "time",
+    "label": "Construction, months",
+    "default": 14,
+    "step": 1,
+    "unit": "mo"
+   },
+   {
+    "id": "lead",
+    "tab": "time",
+    "label": "Longest equipment lead, months (transformer)",
+    "default": 30,
+    "step": 1,
+    "unit": "mo",
+    "dir": "lead-up->ttp-up"
+   },
+   {
+    "id": "orbT",
+    "tab": "time",
+    "label": "Orbital comparator T_deploy, months",
+    "default": 30,
+    "step": 1,
+    "unit": "mo"
+   }
+  ],
+  "text_file_inputs": [
+   {
+    "id": "siteName",
+    "tab": "site",
+    "label": "Site name (for custom sites)",
+    "kind": "text",
+    "unit": ""
+   },
+   {
+    "id": "siteImport",
+    "tab": "site",
+    "label": "",
+    "kind": "file",
+    "unit": ""
+   }
+  ],
+  "selects": [
+   {
+    "id": "beTarget",
+    "tab": "global",
+    "label": "Electricity tariff, $/MWhPUE (manual mode)Compute $/unitUtilization %Tokens/s/MWMEP $M/MWInterconnection queue, months",
+    "options": [
+     "tariff",
+     "pueManual",
+     "rcost",
+     "util",
+     "tpsmw",
+     "mep",
+     "queue"
+    ],
+    "default": "tariff"
+   },
+   {
+    "id": "beGoal",
+    "tab": "global",
+    "label": "Target $/1M tokensTarget time-to-power, months",
+    "options": [
+     "tok",
+     "ttp"
+    ],
+    "default": "tok"
+   },
+   {
+    "id": "sitePreset",
+    "tab": "site",
+    "label": "Location",
+    "options": [
+     "US-VA",
+     "DE-HE",
+     "IE",
+     "SE",
+     "IS",
+     "AE",
+     "SG",
+     "ZA",
+     "BR-SP",
+     "AU-NSW",
+     "__custom"
+    ],
+    "default": "US-VA"
+   },
+   {
+    "id": "scale",
+    "tab": "site",
+    "label": "Scale regime",
+    "options": [
+     "hall",
+     "campus"
+    ],
+    "default": "hall"
+   },
+   {
+    "id": "tier",
+    "tab": "site",
+    "label": "Redundancy tier",
+    "options": [
+     "2",
+     "3",
+     "4"
+    ],
+    "default": "3"
+   },
+   {
+    "id": "geoClass",
+    "tab": "power",
+    "label": "Geothermal potential",
+    "options": [
+     "0",
+     "1",
+     "2",
+     "3"
+    ],
+    "default": "0"
+   },
+   {
+    "id": "gasAccess",
+    "tab": "power",
+    "label": "Gas pipeline / LNG access",
+    "options": [
+     "1",
+     "0"
+    ],
+    "default": "1"
+   },
+   {
+    "id": "nucPolicy",
+    "tab": "power",
+    "label": "Nuclear policy",
+    "options": [
+     "1",
+     "0"
+    ],
+    "default": "1"
+   },
+   {
+    "id": "mixTemplate",
+    "tab": "power",
+    "label": "Template",
+    "options": [
+     "grid",
+     "bridge",
+     "solarhyb",
+     "windflex",
+     "geo",
+     "nuc",
+     "ccs",
+     "custom"
+    ],
+    "default": "grid"
+   },
+   {
+    "id": "mixOpt0",
+    "tab": "power",
+    "label": "Mix row 1 option",
+    "options": [
+     "grid",
+     "gridflex",
+     "ppa",
+     "recip",
+     "aero",
+     "ccgt",
+     "ccgtccs",
+     "h2ready",
+     "sofc",
+     "genset",
+     "pv",
+     "wind",
+     "bess",
+     "geo",
+     "egs",
+     "hydro",
+     "nuccontract",
+     "smr",
+     "micro",
+     "biomass",
+     "h2turb"
+    ],
+    "default": "grid"
+   },
+   {
+    "id": "mixOpt1",
+    "tab": "power",
+    "label": "Mix row 2 option",
+    "options": [
+     "grid",
+     "gridflex",
+     "ppa",
+     "recip",
+     "aero",
+     "ccgt",
+     "ccgtccs",
+     "h2ready",
+     "sofc",
+     "genset",
+     "pv",
+     "wind",
+     "bess",
+     "geo",
+     "egs",
+     "hydro",
+     "nuccontract",
+     "smr",
+     "micro",
+     "biomass",
+     "h2turb"
+    ],
+    "default": "genset"
+   },
+   {
+    "id": "cool",
+    "tab": "climate",
+    "label": "Cooling architecture",
+    "options": [
+     "air",
+     "rdhx",
+     "dlc",
+     "imm"
+    ],
+    "default": "dlc"
+   },
+   {
+    "id": "pueMode",
+    "tab": "climate",
+    "label": "PUE basis",
+    "options": [
+     "derived",
+     "manual"
+    ],
+    "default": "derived"
+   },
+   {
+    "id": "evap",
+    "tab": "climate",
+    "label": "Evaporative cooling? (L/kWh_IT)",
+    "options": [
+     "0",
+     "1.8"
+    ],
+    "default": "0"
+   },
+   {
+    "id": "facMode",
+    "tab": "build",
+    "label": "Facility cost basis",
+    "options": [
+     "stack",
+     "single"
+    ],
+    "default": "stack"
+   },
+   {
+    "id": "opexMode",
+    "tab": "econ",
+    "label": "Legacy opex mode (single % of facility capex, parity)",
+    "options": [
+     "itemised",
+     "single"
+    ],
+    "default": "itemised"
+   },
+   {
+    "id": "availMode",
+    "tab": "econ",
+    "label": "Availability basis",
+    "options": [
+     "tier",
+     "manual"
+    ],
+    "default": "tier"
+   },
+   {
+    "id": "salvMode",
+    "tab": "econ",
+    "label": "Compute salvage rule",
+    "options": [
+     "line"
+    ],
+    "default": "line"
+   },
+   {
+    "id": "qpf",
+    "tab": "time",
+    "label": "Queue requires permits first?",
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   }
+  ],
+  "buttons_contextual": [
+   {
+    "id": "siteSave",
+    "tab": "site",
+    "label": "Save as custom site"
+   },
+   {
+    "id": "siteExport",
+    "tab": "site",
+    "label": "Export site JSON"
+   },
+   {
+    "id": "siteDelete",
+    "tab": "site",
+    "label": "import:"
+   },
+   {
+    "id": "mixDel0",
+    "tab": "power",
+    "label": "Remove mix row 1"
+   },
+   {
+    "id": "mixDel1",
+    "tab": "power",
+    "label": "Remove mix row 2"
+   },
+   {
+    "id": "mixAdd",
+    "tab": "power",
+    "label": "+ Add row"
+   }
+  ],
+  "power_mix_dynamic": {
+   "template_select": "mixTemplate",
+   "add_button": "mixAdd",
+   "row_ids_pattern": [
+    "mixOpt{i}",
+    "mixMW{i}",
+    "mixOrd{i}",
+    "mixDel{i}"
+   ],
+   "note": "rows regenerate on template change; per-row ids are INFO in reconcile"
+  },
+  "result_kpi_ids": {
+   "tok": "Delivered cost / 1M tokens",
+   "capexMW": "Initial CAPEX / MW IT (incl. compute)",
+   "kwmo": "Facility cost / kW-month (excl. compute, energy)",
+   "ttp": "Time to power",
+   "pueMW": "PUE · facility MW",
+   "gpuh": "TCO-derived $/GPU-hour",
+   "env": "Carbon · water per 1M tokens",
+   "avail": "Effective availability"
+  },
+  "display_registry": [
+   {
+    "id": "beResult",
+    "region": "results",
+    "shows": "—",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "mixCostOut",
+    "region": "power",
+    "shows": "Mix firm-equivalent cost, year 1",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "tPowerOut",
+    "region": "power",
+    "shows": "Time to firm power from mix",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "pueOut",
+    "region": "climate",
+    "shows": "PUE (derived)",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "unitsOut",
+    "region": "compute",
+    "shows": "Installed units (derived)",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "status",
+    "region": "results",
+    "shows": "Delivered cost / 1M tokens",
+    "role": "warning",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "tok",
+    "region": "results",
+    "shows": "Delivered cost / 1M tokens",
+    "role": "kpi",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "tokDetail",
+    "region": "results",
+    "shows": "Delivered cost / 1M tokens",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "capexMW",
+    "region": "results",
+    "shows": "Initial CAPEX / MW IT (incl. compute)",
+    "role": "kpi",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "capexDetail",
+    "region": "results",
+    "shows": "Initial CAPEX / MW IT (incl. compute)",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "kwmo",
+    "region": "results",
+    "shows": "Facility cost / kW-month (excl. compute, energy)",
+    "role": "kpi",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "kwmoDetail",
+    "region": "results",
+    "shows": "Facility cost / kW-month (excl. compute, energy)",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "ttp",
+    "region": "results",
+    "shows": "Time to power",
+    "role": "kpi",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "ttpDetail",
+    "region": "results",
+    "shows": "Time to power",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "pueMW",
+    "region": "results",
+    "shows": "PUE · facility MW",
+    "role": "kpi",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "pueDetail",
+    "region": "results",
+    "shows": "PUE · facility MW",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "gpuh",
+    "region": "results",
+    "shows": "TCO-derived $/GPU-hour",
+    "role": "kpi",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "env",
+    "region": "results",
+    "shows": "Carbon · water per 1M tokens",
+    "role": "kpi",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "envDetail",
+    "region": "results",
+    "shows": "Carbon · water per 1M tokens",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "avail",
+    "region": "results",
+    "shows": "Effective availability",
+    "role": "kpi",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "availDetail",
+    "region": "results",
+    "shows": "Effective availability",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "tornadoNote",
+    "region": "results",
+    "shows": "—",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "footerNote",
+    "region": "results",
+    "shows": "",
+    "role": "derived",
+    "rules": "R1,R21"
+   }
+  ],
+  "modal_controls": [
+   {
+    "id": "beTarget",
+    "tab": "modal:breakeven",
+    "label": "Break-even: solve for",
+    "kind": "select"
+   },
+   {
+    "id": "beGoal",
+    "tab": "modal:breakeven",
+    "label": "Break-even: goal",
+    "kind": "select"
+   },
+   {
+    "id": "beVal",
+    "tab": "modal:breakeven",
+    "label": "Break-even: target value",
+    "kind": "number"
+   },
+   {
+    "id": "beClose",
+    "tab": "modal:breakeven",
+    "label": "Close break-even",
+    "kind": "action"
+   },
+   {
+    "id": "specWindow",
+    "tab": "modal:spec",
+    "label": "Open spec in own window",
+    "kind": "action"
+   },
+   {
+    "id": "specClose",
+    "tab": "modal:spec",
+    "label": "Close spec",
+    "kind": "action"
+   },
+   {
+    "id": "specFile",
+    "tab": "modal:spec",
+    "label": "Load spec file",
+    "kind": "file"
+   },
+   {
+    "id": "testClose",
+    "tab": "modal:test",
+    "label": "Close self-tests",
+    "kind": "action"
+   },
+   {
+    "id": "siteImport",
+    "tab": "site",
+    "label": "Import site JSON",
+    "kind": "file"
+   }
+  ]
+ },
+ "mode_gated_inputs": [
+  {
+   "input": "tFac",
+   "gated_by": "facMode",
+   "unlock_value": "single"
+  },
+  {
+   "input": "tOpex",
+   "gated_by": "opexMode",
+   "unlock_value": "single"
+  },
+  {
+   "input": "tAvail",
+   "gated_by": "availMode",
+   "unlock_value": "manual"
+  },
+  {
+   "input": "pueManual",
+   "gated_by": "pueMode",
+   "unlock_value": "manual"
+  }
+ ],
+ "test_suites": [
+  {
+   "id": "S1",
+   "name": "Smoke / load",
+   "proves": "App loads, no console errors, KPIs render.",
+   "type": "functional"
+  },
+  {
+   "id": "S2",
+   "name": "Tab navigation",
+   "parametric_over": "control_registry.tabs",
+   "proves": "All 7 tabs reveal their controls."
+  },
+  {
+   "id": "S3",
+   "name": "Numeric inputs",
+   "parametric_over": "control_registry.numeric_inputs",
+   "per_input_cases": [
+    {
+     "id": "nominal",
+     "action": "set default, recalc",
+     "expect": "KPIs recompute, no error"
+    },
+    {
+     "id": "low",
+     "action": "set min or min+step, recalc",
+     "expect": "accepted, no NaN, cautions recorded"
+    },
+    {
+     "id": "high",
+     "action": "set default×10, recalc",
+     "expect": "finite KPIs, direction matches rule if any"
+    },
+    {
+     "id": "invalid_neg",
+     "action": "set -1, recalc",
+     "expect": "clamped or flagged, never NaN"
+    },
+    {
+     "id": "invalid_text",
+     "action": "set 'abc', recalc",
+     "expect": "treated as 0/ignored, never NaN"
+    },
+    {
+     "id": "restore",
+     "action": "reset field",
+     "expect": "baseline restored"
+    }
+   ],
+   "type": "functional+validity"
+  },
+  {
+   "id": "S4",
+   "name": "Dropdowns",
+   "parametric_over": "control_registry.selects",
+   "proves": "Every option applies and unlocks/locks the right fields."
+  },
+  {
+   "id": "S5",
+   "name": "Cooling & PUE",
+   "proves": "Each cooling architecture sets its cap and overhead; derived vs manual PUE toggle works (R9,R10,R11)."
+  },
+  {
+   "id": "S6",
+   "name": "Power mix & templates",
+   "proves": "Each of the 7 templates builds an eligible mix; rows editable; add/delete work; LCOE and dispatch tables render (R12–R16).",
+   "type": "functional+validity"
+  },
+  {
+   "id": "S7",
+   "name": "Modals",
+   "proves": "Specification (render + own-window + file fallback), Break-even (every beTarget×beGoal), Self-tests all-pass."
+  },
+  {
+   "id": "S8",
+   "name": "Global actions",
+   "proves": "Recalculate, Reset→baseline, Download round-trip, custom-site save/export/import (R22,R23)."
+  },
+  {
+   "id": "S9",
+   "name": "Reasonableness",
+   "parametric_over": "reasonableness_rules",
+   "proves": "All 25 physics/economics/text rules hold on baseline and perturbations.",
+   "type": "validity"
+  },
+  {
+   "id": "S10",
+   "name": "Data layers",
+   "proves": "On a served origin, data/jurisdictions.json and data/power_options.json override embedded rows; status line names the source; on file:// presets stand (network/origin gated)."
+  },
+  {
+   "id": "S11",
+   "name": "Cross-field & mode gating",
+   "parametric_over": "mode_gated_inputs",
+   "proves": "Each gated input locks/unlocks with its mode select."
+  },
+  {
+   "id": "S12",
+   "name": "Display completeness",
+   "parametric_over": "control_registry.display_registry",
+   "proves": "All readouts render meaningful values, respond to inputs, stay consistent (table totals, paired readouts).",
+   "type": "validity"
+  },
+  {
+   "id": "S13",
+   "name": "Tag reconciliation",
+   "proves": "reconcile(MANIFEST).pass === true; no untagged/dom_only/manifest_only/attr_mismatch beyond documented dynamic mix rows.",
+   "type": "validity"
+  }
+ ],
+ "reasonableness_rules": [
+  {
+   "id": "R1",
+   "name": "No NaN/Infinity/blank",
+   "check": "After any valid input, every KPI readout (tok,capexMW,kwmo,ttp,pueMW,gpuh,env,avail) renders a finite value; no 'NaN','Infinity','','undefined','$NaN'.",
+   "severity": "critical"
+  },
+  {
+   "id": "R2",
+   "name": "Non-negative economics",
+   "check": "tok, capexMW, kwmo, gpuh ≥ 0 for any physically valid scenario.",
+   "severity": "critical"
+  },
+  {
+   "id": "R3",
+   "name": "Baseline anchor",
+   "check": "Reset + US-VA grid template reproduces the oracle table within ±2% (sign/structure exact).",
+   "severity": "high"
+  },
+  {
+   "id": "R4",
+   "name": "Parity self-test",
+   "check": "The in-file 'Orbital parity' self-test yields $0.247/1M tokens ±0.2% under the stub inputs. Authoritative over the oracle if they disagree.",
+   "severity": "critical"
+  },
+  {
+   "id": "R5",
+   "name": "Composition self-test",
+   "check": "The §10.2 stack at US-avg, Tier III, air, grid-only composes to ~$12M/MW IT ±5%.",
+   "severity": "high"
+  },
+  {
+   "id": "R6",
+   "name": "Unit-count derivation",
+   "check": "installed units = ceil(mw*1000/rkw) then +spare%; IT MW = units*rkw/1000*(1+itoh); moves monotonically with mw and rkw.",
+   "severity": "high"
+  },
+  {
+   "id": "R7",
+   "name": "Utilization drives token cost down",
+   "check": "↑util lowers tok; ↑tpsmw lowers tok; both monotone.",
+   "severity": "high"
+  },
+  {
+   "id": "R8",
+   "name": "Tariff & compute cost drive token cost up",
+   "check": "↑tariff, ↑rcost, ↑disc each raise tok.",
+   "severity": "high"
+  },
+  {
+   "id": "R9",
+   "name": "Derived PUE bounds",
+   "check": "When pueMode=derived, 1.0 < PUE < 2.0 for all cooling architectures; ↑free-cooling fraction lowers PUE.",
+   "severity": "high"
+  },
+  {
+   "id": "R10",
+   "name": "PUE·facility MW consistency",
+   "check": "facility MW = IT MW × PUE; pueMW readout equals the two multiplied.",
+   "severity": "medium"
+  },
+  {
+   "id": "R11",
+   "name": "Cooling architecture cap",
+   "check": "A warning fires when unit TDP exceeds the selected cooling architecture maximum (air 40, rdhx 80, dlc 150, imm 200 kW).",
+   "severity": "medium"
+  },
+  {
+   "id": "R12",
+   "name": "Time-to-power binding term",
+   "check": "ttp equals max of power-mix, design+construction, long-lead; the named binding term is the arg-max; changing the binding input moves ttp.",
+   "severity": "high"
+  },
+  {
+   "id": "R13",
+   "name": "Power mix firm coverage",
+   "check": "When the mix cannot reach facility load, tPowerOut says 'never' and a red caution fires; otherwise firm MW ≥ load at the reported month.",
+   "severity": "high"
+  },
+  {
+   "id": "R14",
+   "name": "LCOE closed form",
+   "check": "recips at 90% CF, $40/MWh_th gas, 45% eff, $1.2M/MW, 25 yr, 8% → LCOE within ±1% of the closed-form value ($111.7/MWh at defaults).",
+   "severity": "high"
+  },
+  {
+   "id": "R15",
+   "name": "Dispatch merit order",
+   "check": "In the dispatch table, cheaper firm sources are used before dearer ones; mix $/MWh lies between the cheapest and dearest dispatched option's variable cost.",
+   "severity": "medium"
+  },
+  {
+   "id": "R16",
+   "name": "On-site generation capex in stack",
+   "check": "Selecting a template with on-site plant adds an 'On-site generation & storage' row to the CAPEX table equal to Σ MW×$/kW of eligible plant.",
+   "severity": "medium"
+  },
+  {
+   "id": "R17",
+   "name": "Availability bounds",
+   "check": "0.5 ≤ effective availability ≤ tier availability; manual mode uses the entered value.",
+   "severity": "medium"
+  },
+  {
+   "id": "R18",
+   "name": "Provenance counting",
+   "check": "Referential + baseline + scenario location-input counts sum to the number of mapped location fields; editing a preset field moves one from its class to scenario.",
+   "severity": "medium"
+  },
+  {
+   "id": "R19",
+   "name": "Tornado ordering",
+   "check": "Sensitivity bars sorted by |Δ$/1M tokens|; signs consistent with R7/R8 (util,tpsmw green on +20%; tariff,rcost red on +20%).",
+   "severity": "medium"
+  },
+  {
+   "id": "R20",
+   "name": "Facility-mode invariance under parity",
+   "check": "With facMode=single, opexMode=single, manual PUE & availability, straight-line salvage, grid-only mix, changing catalogs/templates that are bypassed must NOT move the parity figure.",
+   "severity": "high"
+  },
+  {
+   "id": "R21",
+   "name": "Text integrity",
+   "check": "No readout contains 'NaN','undefined','[object Object]','$undefined'; the status box always states either 'passes basic checks' or a bulleted caution list.",
+   "severity": "critical"
+  },
+  {
+   "id": "R22",
+   "name": "Scenario JSON round-trip",
+   "check": "Download scenario JSON captures every input id and the mix array; re-importing reproduces the same tok within rounding.",
+   "severity": "medium"
+  },
+  {
+   "id": "R23",
+   "name": "Custom site round-trip",
+   "check": "Preset → export jurisdiction JSON → re-import reproduces each mapped field value (self-test 'Site record round-trip').",
+   "severity": "medium"
+  },
+  {
+   "id": "R24",
+   "name": "Layout no overflow",
+   "check": "documentElement.scrollWidth ≤ innerWidth+1 at 390px and at desktop widths (self-test 'Layout').",
+   "severity": "medium"
+  },
+  {
+   "id": "R25",
+   "name": "Testability tags complete",
+   "check": "Every interactive element and readout carries the four required data-test-* attributes; reconcile(MANIFEST).pass === true.",
+   "severity": "high"
+  }
+ ],
+ "oracle": {
+  "baseline_scenario": "Reset defaults: US-VA site, 40 MW hall, Tier III, DLC, grid+backup template, derived PUE, straight-line salvage, horizon 15 yr, discount 8%.",
+  "tolerance_pct": 2,
+  "expected": {
+   "tok": "$0.234 /1M tokens",
+   "capexMW": "$39.14M /MW IT",
+   "ttp": "42 months (binding: power mix)",
+   "pueMW": "1.14 · 53 MW facility",
+   "avail": "99.98%",
+   "gpuh": "see live",
+   "env": "~37 gCO2 · 0 L /1M tokens"
+  },
+  "parity_anchor": {
+   "tok_stub": "$0.2473",
+   "note": "authoritative; single $/MW, single % opex, manual PUE 1.3, $80 flat, 99.5%, horizon 10, spares 10%, 1 MW, refresh 3, a=0, grid-only"
+  },
+  "composition_anchor": {
+   "facility_per_mw": "$12.14M",
+   "note": "§10.2 stack US-avg Tier III air grid-only"
+  },
+  "lcoe_anchor": {
+   "recips_90cf": "$111.7/MWh"
+  },
+  "known_cautions_examples": [
+   "queue ≥60 mo with grid-only → suggest bridge/contract template",
+   "SAIDI>500 → backup dominates availability",
+   "unit TDP exceeds cooling max",
+   "mix never reaches load"
+  ]
+ },
+ "report_schema": {
+  "run": {
+   "target": "",
+   "app_version": "",
+   "catalog_version": "",
+   "timestamp": "",
+   "origin": "file|served"
+  },
+  "summary": {
+   "passed": 0,
+   "failed": 0,
+   "blocked": 0,
+   "drift": 0,
+   "info": 0,
+   "coverage_pct": 0
+  },
+  "coverage_manifest": {
+   "numeric_inputs_tested": "x/74",
+   "selects_tested": "x/19",
+   "buttons": "x/16",
+   "display_readouts": "x/23",
+   "templates": "x/7",
+   "rules_run": "x/25"
+  },
+  "findings": [
+   {
+    "case": "",
+    "status": "PASS|FAIL|BLOCKED|DRIFT|INFO",
+    "severity": "",
+    "observed": "",
+    "expected": "",
+    "screenshot": ""
+   }
+  ],
+  "review_flags": []
+ },
+ "permission_and_safety_notes": [
+  "Download scenario JSON and Export site JSON write a file — permissioned action, note in report.",
+  "On a served origin the page fetches ./data/*.json same-origin only; no third-party calls except the optional Open-Meteo point refinement (not in v0.4).",
+  "No destructive server state; Reset fully restores baseline."
+ ],
+ "tag_contract": {
+  "purpose": "Every interactive element and readout carries data-test-* attributes so the UI is self-describing; rich detail lives here keyed by the same id; reconcile.js proves they agree.",
+  "attribute_prefix": "data-test-",
+  "id_rule": "data-test-id (controls) / data-test-out (readouts) MUST equal the DOM id.",
+  "required_on_every_interactive_element": [
+   "data-test-id",
+   "data-test-kind",
+   "data-test-tab",
+   "data-test-label"
+  ],
+  "required_on_every_readout": [
+   "data-test-out (= id) OR data-test-id",
+   "data-test-kind='readout'",
+   "data-test-tab",
+   "data-test-label"
+  ],
+  "kinds": [
+   "number",
+   "text",
+   "select",
+   "action",
+   "file",
+   "readout"
+  ],
+  "tabs": [
+   "site",
+   "power",
+   "climate",
+   "build",
+   "compute",
+   "econ",
+   "time",
+   "results",
+   "global",
+   "modal:breakeven",
+   "modal:spec",
+   "modal:test"
+  ],
+  "optional": [
+   "data-test-unit",
+   "data-test-role (kpi|derived|badge|note|table|warning)",
+   "data-test-gated-by",
+   "data-test-dir"
+  ],
+  "dynamic_elements": "Power-mix row controls (mixOpt/mixMW/mixOrd/mixDel + index) are created at runtime and carry tags but are not enumerated in the manifest; the reconciler lists them as dom_only INFO, not failures.",
+  "reconcile_version_required": ">=1.0.0"
+ }
+}
