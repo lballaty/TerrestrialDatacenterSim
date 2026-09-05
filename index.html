@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terrestrial AI Data Center Siting and Economics Model (v0.4)</title>
+<style>
+:root{
+  --bg:#0d1117;--panel:#151b23;--panel2:#1b2330;--panel3:#10161e;
+  --text:#e6edf3;--muted:#9da7b3;--line:#303843;--accent:#58a6ff;
+  --good:#3fb950;--warn:#d29922;--bad:#f85149;--cyan:#79c0ff;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:20px max(16px,calc((100% - 1580px)/2));border-bottom:1px solid var(--line);background:var(--panel3)}
+h1{margin:0 0 5px;font-size:24px} h2{font-size:17px;margin:0 0 12px} h3{font-size:14px;margin:18px 0 8px}
+a{color:#79b8ff}.muted,small{color:var(--muted)}
+.wrap{max-width:1580px;margin:auto;padding:16px}
+.actions,.tabs{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.actions{margin-bottom:14px}
+button,select,input{font:inherit}
+button{min-height:38px;border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:8px 11px;border-radius:7px;cursor:pointer}
+button:hover{border-color:#596575}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button.active,.primary{background:#1f6feb;border-color:#1f6feb}
+.grid{display:grid;grid-template-columns:minmax(365px,545px) minmax(0,1fr);gap:15px;align-items:start}
+@media(max-width:980px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+.panel + .panel{margin-top:13px}
+.tabs{margin-bottom:12px;overflow:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.tabs button{white-space:nowrap}
+.pane{display:none}.pane.active{display:block}
+.controls{display:grid;grid-template-columns:minmax(0,1fr) 155px;gap:7px 12px;align-items:center}
+@media(max-width:700px){.controls{grid-template-columns:1fr}.controls label{margin-top:6px}.note{grid-column:auto}}
+.controls input,.controls select{width:100%;min-height:38px;background:var(--bg);border:1px solid var(--line);color:var(--text);padding:7px 8px;border-radius:6px}
+.note{grid-column:1/-1;color:var(--muted);font-size:12px;margin-top:1px}
+.controls output{width:100%;min-height:38px;display:flex;align-items:center;padding:7px 8px;background:var(--panel3);border:1px dashed var(--line);border-radius:6px;color:var(--cyan);font-weight:600}
+.badge{display:inline-block;padding:1px 6px;border:1px solid var(--line);border-radius:999px;font-size:11px;color:var(--muted)}
+.badge.anchor{border-color:#3b6ea5;color:#9ecbff}.badge.ref{border-color:#2f7d4a;color:#7ee2a0}.badge.baseline{border-color:#8a6d1f;color:#e3c46a}.badge.scenario{border-color:#6a4fa3;color:#c9b3ff}.badge.derived{border-color:var(--line);color:var(--muted)}
+.mixrow{display:grid;grid-template-columns:minmax(0,1.6fr) 90px 90px 34px;gap:6px;align-items:center;margin-bottom:6px}
+.mixrow input,.mixrow select{width:100%;min-height:36px;background:var(--bg);border:1px solid var(--line);color:var(--text);padding:6px;border-radius:6px}
+.mixrow button{min-height:36px;padding:0}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(125px,1fr));gap:9px}
+@media(max-width:1200px){.metrics{grid-template-columns:repeat(2,1fr)}} @media(max-width:520px){.metrics{grid-template-columns:1fr}}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;min-width:0}
+.metric .v{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:3px 0;overflow-wrap:anywhere}
+.metric .l{font-size:12px;color:var(--muted)}
+.call{padding:10px 12px;border-left:3px solid var(--warn);background:#1b1a14;border-radius:4px;margin-bottom:12px}
+.table{overflow:auto} table{width:100%;border-collapse:collapse;min-width:420px}
+th,td{text-align:right;padding:7px;border-bottom:1px solid var(--line)} th:first-child,td:first-child{text-align:left}
+.good{color:var(--good)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+.row{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.bar{height:10px;background:var(--bg);border:1px solid var(--line);border-radius:99px;overflow:hidden}.bar>div{height:100%;background:var(--accent);width:0}
+svg.chart{width:100%;height:auto;display:block}
+details{border-top:1px solid var(--line);padding:10px 0}summary{cursor:pointer;font-weight:600}
+footer{max-width:1580px;margin:18px auto 50px;padding:0 16px;color:var(--muted);font-size:12px}
+code{background:#0d1117;padding:2px 4px;border-radius:4px}
+#specModal{display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.55)}
+#specModal>div{position:absolute;inset:4vh 6vw;background:var(--panel);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;overflow:hidden}
+@media(max-width:700px){#specModal>div{inset:2vh 2vw}}
+#specBody{overflow:auto;padding:16px 22px;line-height:1.5;font-size:14px}
+#specBody h1{font-size:22px;margin:10px 0}#specBody h2{font-size:18px;margin:22px 0 8px;border-bottom:1px solid var(--line);padding-bottom:4px}#specBody h3{font-size:15px;margin:16px 0 6px}
+#specBody table{min-width:0;margin:8px 0}#specBody th,#specBody td{text-align:left;font-size:13px;vertical-align:top}
+#specBody pre{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;overflow:auto;font-size:12px}
+#specBody pre.math{color:var(--cyan);white-space:pre-wrap}#specBody blockquote{border-left:3px solid var(--accent);margin:8px 0;padding:4px 12px;color:var(--muted)}
+#specBody hr{border:0;border-top:1px solid var(--line);margin:18px 0}#specBody li{margin:2px 0}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Terrestrial AI Data Center Siting and Economics Model</h1>
+  <div class="muted">First-principles scenario model for a new-build inference facility at a chosen location: facility, power, climate, construction, compute and lifecycle economics, with every input labelled by how well it is known. Sibling of the <a href="https://lballaty.github.io/OrbitalDatacenterSim/" target="_blank" rel="noopener">orbital model</a>; shares its compute anchor and cost spine. Inference only.</div>
+</header>
+
+<div class="wrap">
+  <div class="actions">
+    <button class="primary" id="calc">Recalculate</button>
+    <button id="reset">Reset base scenario</button>
+    <button id="download">Download scenario JSON</button>
+    <button id="breakeven">Break-even solver</button>
+    <button id="runtests">Run self-tests</button>
+    <button id="openSpec">Specification</button>
+    <span class="badge" id="siteBadge">Site: —</span>
+    <span class="badge" id="provBadge">Provenance: —</span>
+  </div>
+
+  <div id="specModal">
+    <div>
+      <div class="row" style="padding:10px 14px;border-bottom:1px solid var(--line)"><strong>Model specification</strong>
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><button id="specWindow" style="min-height:30px">⧉ Open in its own window</button><label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)">load file: <input type="file" id="specFile" accept=".md,text/markdown" style="min-height:auto;font-size:11px"></label><button id="specClose" style="min-height:30px">Close</button></div></div>
+      <div id="specBody"></div>
+    </div>
+  </div>
+  <div id="beBox" class="panel" style="display:none;margin-bottom:14px">
+    <div class="row"><h2 style="margin:0">Break-even solver</h2><button id="beClose" style="min-height:30px">Close</button></div>
+    <div class="controls" style="margin-top:10px">
+      <label>Solve for</label><select id="beTarget"><option value="tariff">Electricity tariff, $/MWh</option><option value="pueManual">PUE (manual mode)</option><option value="rcost">Compute $/unit</option><option value="util">Utilization %</option><option value="tpsmw">Tokens/s/MW</option><option value="mep">MEP $M/MW</option><option value="queue">Interconnection queue, months</option></select>
+      <label>Goal</label><select id="beGoal"><option value="tok">Target $/1M tokens</option><option value="ttp">Target time-to-power, months</option></select>
+      <label>Target value</label><input id="beVal" type="number" step="any" value="0.2">
+    </div>
+    <div class="call" id="beResult" style="margin-top:10px">—</div>
+    <p class="muted">Bisection on the selected input holding everything else fixed; reports the value at which the result meets the goal, or that no solution exists in the searched range.</p>
+  </div>
+  <div id="testBox" class="panel" style="display:none;margin-bottom:14px">
+    <div class="row"><h2 style="margin:0">Self-tests</h2><button id="testClose" style="min-height:30px">Close</button></div>
+    <div class="table" style="margin-top:10px"><table><thead><tr><th>Check</th><th>Expected</th><th>Actual</th><th>Result</th></tr></thead><tbody id="testRows"></tbody></table></div>
+  </div>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="tabs" id="tabs">
+        <button class="active" data-p="site">Site</button>
+        <button data-p="power">Power</button>
+        <button data-p="climate">Climate &amp; cooling</button>
+        <button data-p="build">Land &amp; construction</button>
+        <button data-p="compute">Compute</button>
+        <button data-p="econ">Lifecycle</button>
+        <button data-p="time">Timeline</button>
+      </div>
+
+      <div class="pane active" id="site">
+        <h2>Site</h2>
+        <div class="controls">
+          <label>Location <span class="badge ref">referential</span></label><select id="sitePreset"></select>
+          <div class="note" id="siteNote">—</div>
+          <label>Site name (for custom sites)</label><input id="siteName" type="text" value="">
+          <div class="note" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <button id="siteSave" style="min-height:30px">Save as custom site</button>
+            <button id="siteExport" style="min-height:30px">Export site JSON</button>
+            <label style="display:flex;align-items:center;gap:4px">import: <input type="file" id="siteImport" accept=".json,application/json" style="min-height:auto;font-size:11px;width:auto"></label>
+            <button id="siteDelete" style="min-height:30px">Delete custom site</button>
+          </div>
+          <div class="note" id="dataStatus">Location records: embedded presets.</div>
+          <label>Latitude</label><input id="lat" type="number" step="0.01" value="39.04">
+          <label>Longitude</label><input id="lon" type="number" step="0.01" value="-77.49">
+          <label>Scale regime</label><select id="scale"><option value="hall">Single hall (20–50 MW)</option><option value="campus">Campus (100 MW – 1 GW)</option></select>
+          <label>Target productive IT, MW</label><input id="mw" type="number" min="1" step="1" value="40">
+          <label>Redundancy tier</label><select id="tier"><option value="2">Tier II — 99.74%, N</option><option value="3" selected>Tier III — 99.98%, N+1</option><option value="4">Tier IV — 99.995%, 2N</option></select>
+          <div class="note">Presets seed the location-dependent fields; every one of them is editable, and an edited field is relabelled scenario. Save the current set under a name to keep it in this browser, export it as a jurisdiction-style JSON record to share or commit to <code>data/jurisdictions.json</code>, or import one. On a served origin the curated file replaces the embedded presets. Map pin and 1° climate grid arrive with the data layers.</div>
+        </div>
+      </div>
+
+      <div class="pane" id="power">
+        <h2>Power supply</h2>
+        <h3>Grid</h3>
+        <div class="controls">
+          <label>Project start year</label><input id="startYear" type="number" step="1" value="2027">
+          <label>Electricity tariff, $/MWh <span class="badge ref" id="lab_tariff">referential</span></label><input id="tariff" type="number" step="1" value="80">
+          <label>Tariff escalation, %/yr <span class="badge baseline">baseline</span></label><input id="tariffEsc" type="number" step="0.5" value="2">
+          <label>Capacity charge, $/kW-month <span class="badge ref" id="lab_capch">referential</span></label><input id="capch" type="number" step="0.5" value="8">
+          <label>Interconnection + substation, $M / MW facility <span class="badge baseline">baseline</span></label><input id="icCost" type="number" step="0.1" value="0.8">
+          <label>Interconnection queue, months <span class="badge ref" id="lab_queue">referential</span></label><input id="queue" type="number" step="1" value="36">
+          <label>Grid reliability SAIDI, min/yr <span class="badge ref" id="lab_saidi">referential</span></label><input id="saidi" type="number" step="10" value="120">
+          <label>Grid carbon intensity, gCO₂/kWh <span class="badge ref" id="lab_ci">referential</span></label><input id="ci" type="number" step="10" value="350">
+          <label>Grid intensity trajectory, %/yr <span class="badge baseline">baseline</span></label><input id="ciEsc" type="number" step="0.5" value="-3">
+          <label>Carbon price, $/tCO₂ <span class="badge ref" id="lab_co2">referential</span></label><input id="co2" type="number" step="5" value="0">
+        </div>
+        <h3>Site resources (Layer A stub — per-site baselines until the resource bundles exist)</h3>
+        <div class="controls">
+          <label>Solar capacity factor <span class="badge baseline" id="lab_solarCF">baseline</span></label><input id="solarCF" type="number" step="0.01" min="0" max="0.4" value="0.20">
+          <label>Wind capacity factor <span class="badge baseline" id="lab_windCF">baseline</span></label><input id="windCF" type="number" step="0.01" min="0" max="0.6" value="0.30">
+          <label>Geothermal potential <span class="badge baseline" id="lab_geoClass">baseline</span></label><select id="geoClass"><option value="0">none</option><option value="1">low (EGS only)</option><option value="2">moderate</option><option value="3">high (hydrothermal)</option></select>
+          <label>Gas pipeline / LNG access <span class="badge baseline" id="lab_gasAccess">baseline</span></label><select id="gasAccess"><option value="1">yes</option><option value="0">no</option></select>
+          <label>Contractable hydro / existing-plant MW nearby <span class="badge baseline" id="lab_hydroMW">baseline</span></label><input id="hydroMW" type="number" step="10" value="0">
+          <label>Nuclear policy <span class="badge baseline" id="lab_nucPolicy">baseline</span></label><select id="nucPolicy"><option value="1">allowed</option><option value="0">restricted / banned</option></select>
+          <label>Fuel: gas price, $/MWh_th <span class="badge ref" id="lab_gasPrice">referential</span></label><input id="gasPrice" type="number" step="1" value="12">
+          <label>Fuel escalation, %/yr <span class="badge baseline">baseline</span></label><input id="fuelEsc" type="number" step="0.5" value="2">
+          <label>Workload flexibility fraction (curtailable) <span class="badge baseline">baseline</span></label><input id="flexFrac" type="number" step="0.05" min="0" max="1" value="0.2">
+        </div>
+        <h3>Supply mix</h3>
+        <div class="controls">
+          <label>Template</label><select id="mixTemplate"><option value="grid">Grid + backup (hall default)</option><option value="bridge">Gas bridge → grid</option><option value="solarhyb">Solar + BESS + gas peaker</option><option value="windflex">Wind + BESS + flexible grid</option><option value="geo">Geothermal / hydro contract + grid</option><option value="nuc">Nuclear contract / SMR + BESS</option><option value="ccs">CCGT + CCS behind the meter + grid backup</option><option value="custom">Custom (edit rows)</option></select>
+          <div class="note">Each row: option, MW (or MWh for storage), order month from project start. An option cannot deliver before its lead time and its earliest availability year. Firm MW, dispatch order and cost are computed per operating year; the firm-equivalent $/MWh of the mix is what enters the lifecycle spine.</div>
+        </div>
+        <div id="mixRows"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px"><button id="mixAdd" style="min-height:32px">+ Add row</button><span class="muted" style="font-size:12px;align-self:center">Firmness factors (baseline): baseload 0.92 · dispatchable 0.95 · variable = CF × firmable share (30% + storage).</span></div>
+        <div class="controls"><label>Mix firm-equivalent cost, year 1 <span class="badge derived">derived</span></label><output id="mixCostOut">—</output><label>Time to firm power from mix <span class="badge derived">derived</span></label><output id="tPowerOut">—</output></div>
+      </div>
+
+      <div class="pane" id="climate">
+        <h2>Climate &amp; cooling</h2>
+        <div class="controls">
+          <label>Cooling architecture</label><select id="cool"><option value="air">Air, hot/cold aisle (≤40 kW/rack)</option><option value="rdhx">Rear-door heat exchanger (≤80 kW)</option><option value="dlc" selected>Direct liquid to chip (≤150 kW)</option><option value="imm">Immersion (≤200 kW)</option></select>
+          <label>PUE basis</label><select id="pueMode"><option value="derived" selected>Derived from climate and architecture</option><option value="manual">Manual PUE</option></select>
+          <label>Manual PUE</label><input id="pueManual" type="number" step="0.01" value="1.3">
+          <label>Design wet-bulb 99.6%, °C <span class="badge ref" id="lab_twb">referential</span></label><input id="twb" type="number" step="0.5" value="26">
+          <label>Free-cooling hours fraction at facility supply temperature <span class="badge baseline" id="lab_ffree">baseline</span></label><input id="ffree" type="number" step="0.01" min="0" max="1" value="0.55">
+          <label>Economiser power ratio ρ <span class="badge baseline">baseline</span></label><input id="rhoEcon" type="number" step="0.05" value="0.25">
+          <label>Electrical losses η_elec <span class="badge baseline">baseline</span></label><input id="etaElec" type="number" step="0.01" value="0.06">
+          <label>Auxiliary κ_aux <span class="badge baseline">baseline</span></label><input id="kAux" type="number" step="0.01" value="0.02">
+          <label>PUE (derived) <span class="badge derived">derived</span></label><output id="pueOut">—</output>
+          <label>Water price, $/m³ <span class="badge ref" id="lab_water">referential</span></label><input id="waterPrice" type="number" step="0.1" value="1.2">
+          <label>Evaporative cooling? (L/kWh_IT) <span class="badge baseline">baseline</span></label><select id="evap"><option value="0" selected>Dry coolers — 0</option><option value="1.8">Evaporative towers — 1.8</option></select>
+          <div class="note">Free-cooling fraction is a per-preset baseline in v0.2; the ERA5 grid (§6.1) replaces it with hours-below-threshold interpolation at the pin.</div>
+        </div>
+      </div>
+
+      <div class="pane" id="build">
+        <h2>Land &amp; construction</h2>
+        <div class="controls">
+          <label>Facility cost basis</label><select id="facMode"><option value="stack" selected>Composed stack (§10.2)</option><option value="single">Single $M / MW of IT (orbital-stub parity mode)</option></select>
+          <label>Single facility cost, $M / MW IT</label><input id="tFac" type="number" step="0.5" value="12">
+          <label>Industrial land, $/m² <span class="badge ref" id="lab_land">referential</span></label><input id="land" type="number" step="5" value="150">
+          <label>Construction cost index (US avg = 1.00) <span class="badge ref" id="lab_cci">referential</span></label><input id="cci" type="number" step="0.01" value="1.00">
+          <label>Shell, $/m² gross <span class="badge baseline">baseline</span></label><input id="shell" type="number" step="50" value="2200">
+          <label>Site preparation, $/m² site <span class="badge baseline">baseline</span></label><input id="siteprep" type="number" step="5" value="60">
+          <label>MEP, $M / MW IT (Tier III) <span class="badge baseline">baseline</span></label><input id="mep" type="number" step="0.1" value="6.3">
+          <label>Cooling plant, $M / MW IT <span class="badge baseline">baseline</span></label><input id="coolCap" type="number" step="0.1" value="1.0">
+          <label>Fit-out, $k / rack <span class="badge baseline">baseline</span></label><input id="fitout" type="number" step="5" value="120">
+          <label>Fibre entry, $M fixed + $k/km to IXP <span class="badge baseline">baseline</span></label><input id="fibreFixed" type="number" step="0.5" value="2">
+          <label>Distance to nearest IXP, km <span class="badge ref" id="lab_ixp">referential</span></label><input id="ixpKm" type="number" step="5" value="30">
+          <label>Soft costs, % hard <span class="badge baseline">baseline</span></label><input id="soft" type="number" step="1" value="12">
+          <label>Contingency, % hard <span class="badge baseline">baseline</span></label><input id="cont" type="number" step="1" value="10">
+          <label>Gross-to-white-space ratio <span class="badge baseline">baseline</span></label><input id="gross" type="number" step="0.1" value="1.8">
+          <label>Site-to-building ratio <span class="badge baseline">baseline</span></label><input id="siteRatio" type="number" step="0.1" value="3">
+          <label>Incentive: capex credit, % <span class="badge ref" id="lab_inc">referential</span></label><input id="incentive" type="number" step="1" value="0">
+        </div>
+      </div>
+
+      <div class="pane" id="compute">
+        <h2>Compute (GB300 NVL72 anchor row)</h2>
+        <div class="controls">
+          <label>Unit TDP, kW <span class="badge anchor">anchor</span></label><input id="rkw" type="number" step="1" value="135">
+          <label>Accelerators / unit <span class="badge anchor">anchor</span></label><input id="gpus" type="number" step="1" value="72">
+          <label>Compute cost / unit, $M <span class="badge baseline">baseline</span></label><input id="rcost" type="number" step="0.1" value="4">
+          <label>IT overhead beyond TDP, % <span class="badge baseline">baseline</span></label><input id="itoh" type="number" step="1" value="10">
+          <label>Installed spare capacity, % <span class="badge scenario">scenario</span></label><input id="spare" type="number" step="1" value="5">
+          <label>Rack footprint incl. aisle share, m² <span class="badge baseline">baseline</span></label><input id="rackm2" type="number" step="0.5" value="4.5">
+          <label>Inference throughput, tokens/s/MW <span class="badge anchor">anchor</span></label><input id="tpsmw" type="number" step="100000" value="2800000">
+          <label>Utilization, % <span class="badge scenario">scenario</span></label><input id="util" type="number" step="1" value="75">
+          <label>Electrical load factor L = a + (1−a)·U; a <span class="badge baseline">baseline</span></label><input id="idle" type="number" step="0.05" value="0.5">
+          <label>Compute refresh interval, years <span class="badge scenario">scenario</span></label><input id="refresh" type="number" step="1" value="3">
+          <label>Installed units (derived) <span class="badge derived">derived</span></label><output id="unitsOut">—</output>
+          <div class="note">Platform and model catalogs (§4a–4b), the throughput matrix, cohorts and cascade (§13.4) arrive in step 6. The anchor row and single throughput cell are what the orbital model uses, so both tools price the same compute.</div>
+        </div>
+      </div>
+
+      <div class="pane" id="econ">
+        <h2>Lifecycle</h2>
+        <div class="controls">
+          <label>Analysis horizon, years</label><input id="years" type="number" step="1" value="15">
+          <label>Discount rate, %</label><input id="disc" type="number" step="0.5" value="8">
+          <label>Facility economic life, years</label><input id="tFacLife" type="number" step="1" value="15">
+          <label>Maintenance, % facility capex/yr <span class="badge baseline">baseline</span></label><input id="maint" type="number" step="0.5" value="2">
+          <label>Property tax, % facility capex/yr <span class="badge ref" id="lab_ptax">referential</span></label><input id="ptax" type="number" step="0.1" value="1.0">
+          <label>Insurance, % facility capex/yr <span class="badge baseline">baseline</span></label><input id="ins" type="number" step="0.1" value="0.4">
+          <label>Security (physical + cyber), % facility capex/yr <span class="badge baseline">baseline</span></label><input id="sec" type="number" step="0.1" value="0.3">
+          <label>Staff, FTE / MW IT <span class="badge baseline">baseline</span></label><input id="fteMW" type="number" step="0.1" value="0.6">
+          <label>Staff cost, $k / FTE / yr <span class="badge ref" id="lab_fte">referential</span></label><input id="fteCost" type="number" step="5" value="120">
+          <label>Decommissioning at horizon, % facility capex <span class="badge baseline">baseline</span></label><input id="decom" type="number" step="0.5" value="2">
+          <label>Legacy opex mode (single % of facility capex, parity)</label><select id="opexMode"><option value="itemised" selected>Itemised (above)</option><option value="single">Single % (orbital stub)</option></select>
+          <label>Single facility opex, %/yr</label><input id="tOpex" type="number" step="0.5" value="4">
+          <label>Availability basis</label><select id="availMode"><option value="tier" selected>From tier and grid reliability</option><option value="manual">Manual</option></select>
+          <label>Manual availability, %</label><input id="tAvail" type="number" step="0.1" value="99.5">
+          <label>Compute salvage rule</label><select id="salvMode"><option value="line" selected>Straight-line within refresh interval (orbital rule)</option></select>
+          <div class="note">Residual-value curves, refresh strategy and financing block (§13.2–13.3) arrive in step 6–7.</div>
+        </div>
+      </div>
+
+      <div class="pane" id="time">
+        <h2>Timeline</h2>
+        <div class="controls">
+          <label>Permitting, months <span class="badge ref" id="lab_permit">referential</span></label><input id="permit" type="number" step="1" value="12">
+          <label>Queue requires permits first? <span class="badge ref" id="lab_qpf">referential</span></label><select id="qpf"><option value="0" selected>No — application runs in parallel</option><option value="1">Yes — queue starts after permits</option></select>
+          <label>Design, months <span class="badge baseline">baseline</span></label><input id="design" type="number" step="1" value="6">
+          <label>Construction, months <span class="badge baseline">baseline</span></label><input id="construct" type="number" step="1" value="14">
+          <label>Longest equipment lead, months (transformer) <span class="badge baseline">baseline</span></label><input id="lead" type="number" step="1" value="30">
+          <label>Orbital comparator T_deploy, months <span class="badge scenario">scenario</span></label><input id="orbT" type="number" step="1" value="30">
+          <div class="note">Full long-lead list, supply mix timing and risk register (§12a, §14.4) arrive in steps 5 and 7.</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="panel">
+        <h2>Scenario result</h2>
+        <div class="call" id="status">Calculating…</div>
+        <div class="metrics">
+          <div class="metric"><div class="l">Delivered cost / 1M tokens</div><div class="v" id="tok">—</div><div class="l" id="tokDetail">—</div></div>
+          <div class="metric"><div class="l">Initial CAPEX / MW IT (incl. compute)</div><div class="v" id="capexMW">—</div><div class="l" id="capexDetail">—</div></div>
+          <div class="metric"><div class="l">Facility cost / kW-month (excl. compute, energy)</div><div class="v" id="kwmo">—</div><div class="l" id="kwmoDetail">—</div></div>
+          <div class="metric"><div class="l">Time to power</div><div class="v" id="ttp">—</div><div class="l" id="ttpDetail">—</div></div>
+          <div class="metric"><div class="l">PUE · facility MW</div><div class="v" id="pueMW">—</div><div class="l" id="pueDetail">—</div></div>
+          <div class="metric"><div class="l">TCO-derived $/GPU-hour</div><div class="v" id="gpuh">—</div><div class="l">at configured utilization and availability</div></div>
+          <div class="metric"><div class="l">Carbon · water per 1M tokens</div><div class="v" id="env">—</div><div class="l" id="envDetail">—</div></div>
+          <div class="metric"><div class="l">Effective availability</div><div class="v" id="avail">—</div><div class="l" id="availDetail">—</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Initial cost stack</h2>
+        <div class="table"><table><thead><tr><th>Category</th><th>$M total</th><th>$M / MW IT</th><th>Label</th></tr></thead><tbody id="capexRows"></tbody></table></div>
+      </div>
+
+      <div class="panel">
+        <h2>Annual operating cost, year 1</h2>
+        <div class="table"><table><thead><tr><th>Line</th><th>$M / yr</th><th>Share</th></tr></thead><tbody id="opexRows"></tbody></table></div>
+      </div>
+
+      <div class="panel">
+        <h2>Generation options at this site: levelised cost and availability</h2>
+        <div class="table"><table><thead><tr><th>Option</th><th>Eligible</th><th>Earliest firm, mo</th><th>CF used</th><th>LCOE yr 1, $/MWh</th><th>gCO₂/kWh</th><th>Label</th></tr></thead><tbody id="lcoeRows"></tbody></table></div>
+        <p class="muted" style="font-size:12px;margin:8px 0 0" id="lcoeNote">—</p>
+      </div>
+
+      <div class="panel">
+        <h2>Supply mix dispatch by operating year</h2>
+        <div class="table"><table><thead><tr><th>Year</th><th>Load MW</th><th>Firm MW</th><th>Served by</th><th>Mix $/MWh</th><th>gCO₂/kWh</th><th>Shortfall</th></tr></thead><tbody id="mixRowsOut"></tbody></table></div>
+      </div>
+
+      <div class="panel">
+        <h2>Sensitivity: ±20% on each input, effect on $/1M tokens</h2>
+        <svg id="tornado" class="chart" viewBox="0 0 760 440" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="muted" id="tornadoNote" style="font-size:12px">—</div>
+      </div>
+
+      <div class="panel">
+        <h2>Location provenance</h2>
+        <div class="table"><table><thead><tr><th>Input</th><th>Value</th><th>Label</th><th>Source</th><th>As of</th></tr></thead><tbody id="provRows"></tbody></table></div>
+        <p class="muted" style="font-size:12px;margin:8px 0 0">Referential values carry a source and date. Baselines are the author's starting points where no reference exists and are meant to be overridden for a real project. Overriding a preset value relabels it scenario.</p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<footer>
+  <strong>Model integrity notes</strong><br>
+  <strong>v0.4 (step 5):</strong> generation option catalog (21 rows, §8a) with LCOE at the site, resource layer stub per site, supply mix with seven templates and a merit-order dispatch per operating year, firm-equivalent $/MWh feeding the spine, on-site generation capex in the stack, time-to-power from the mix as a candidate binding term, two new self-tests.<br>
+  <strong>v0.3:</strong> custom sites (save in browser, export/import as jurisdiction-style JSON), curated <code>data/jurisdictions.json</code> replaces embedded presets on a served origin, lat/lon edits, <code>data-test-*</code> tags on every interactive element and readout, two new self-tests.<br>
+  <strong>v0.2 (step 1–2):</strong> shell, input registry with type labels, location presets, derived PUE, composed CAPEX stack, itemised opex, straight-line compute salvage, time-to-power with named binding term, tornado, break-even, self-tests, specification viewer, responsive layout. Grid-only power; single compute row; no catalogs, demand, risk or cohorts yet.<br>
+  <strong>Parity:</strong> with the facility basis set to "single $M/MW", opex to "single %", manual PUE 1.3, tariff $80 flat, availability 99.5% manual, horizon 10, spares 10%, 1 MW productive and refresh 3, the spine reproduces the orbital model's terrestrial benchmark of $0.247 / 1M tokens (self-test).<br>
+  <strong>Composition:</strong> the §10.2 stack at US-average, Tier III, air cooling composes to ≈ $12M / MW IT, the orbital stub's single figure (self-test).<br>
+  <span id="footerNote"></span><br>
+  This is an exploratory scenario model, not a siting study, engineering design, tariff quotation or investment recommendation.
+</footer>
+
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const YEARSEC=365.25*86400, C=299792458;
+let lastData=null;
+let OV=null, SILENT=false;
+const n=id=>{if(OV&&id in OV)return OV[id];const v=parseFloat($(id).value);return Number.isFinite(v)?v:0};
+const sv=id=>(OV&&id in OV)?OV[id]:$(id).value;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const fmt=(x,d=1)=>Number.isFinite(x)?x.toLocaleString(undefined,{maximumFractionDigits:d}):'—';
+const money=x=>{if(!Number.isFinite(x))return '—';if(Math.abs(x)>=1e9)return '$'+fmt(x/1e9,2)+'B';if(Math.abs(x)>=1e6)return '$'+fmt(x/1e6,2)+'M';if(Math.abs(x)>=1e3)return '$'+fmt(x/1e3,1)+'k';return '$'+fmt(x,3);};
+const set=(id,v)=>{const e=$(id);if(e)e.textContent=v};
+function pvFactor(rate,years){return rate?(1-Math.pow(1+rate,-years))/rate:years}
+function wright(n,ref,lr){return Math.pow(n/ref,Math.log2(lr))}
+function haversineKm(la1,lo1,la2,lo2){const r=Math.PI/180,R=6371;const a=Math.sin((la2-la1)*r/2)**2+Math.cos(la1*r)*Math.cos(la2*r)*Math.sin((lo2-lo1)*r/2)**2;return 2*R*Math.asin(Math.sqrt(a));}
+// Stull (2011) wet-bulb approximation from T (°C) and RH (%), for the self-test and future grid work
+function wetBulbStull(T,RH){return T*Math.atan(0.151977*Math.sqrt(RH+8.313659))+Math.atan(T+RH)-Math.atan(RH-1.676331)+0.00391838*Math.pow(RH,1.5)*Math.atan(0.023101*RH)-4.686035;}
+
+
+// ---------- Location presets (v0.2 embedded; superseded by data/ layers) ----------
+// Each field: [value, label, source, asOf]. label: ref | baseline
+const SITES={
+  'US-VA':{name:'Northern Virginia, USA',lat:39.04,lon:-77.49,f:{tariff:[78,'ref','EIA Virginia industrial average, 2025','2026-06'],capch:[8,'baseline','Dominion large-load schedule structure','2026-06'],queue:[42,'ref','Dominion large-load connection guidance; Loudoun 3–5 yr reported','2026-05'],saidi:[120,'ref','EIA-861 reliability, VA','2025'],ci:[300,'ref','EIA PJM-DOM mix 2024','2025'],co2:[0,'ref','no carbon price','2026'],twb:[26,'ref','ASHRAE 99.6% Washington-Dulles','2021'],ffree:[0.62,'baseline','dry-cooler hours below 27 °C dry-bulb, estimate','2026'],water:[1.2,'ref','Loudoun Water industrial rate','2025'],land:[150,'ref','Loudoun industrial land, reported range','2026'],cci:[1.00,'ref','Turner & Townsend DC cost index, US avg = 1','2025'],ixp:[30,'ref','Equinix DC/Ashburn campus','2026'],inc:[0,'ref','VA sales-tax exemption not modeled as capex credit','2026'],ptax:[1.0,'ref','Loudoun real property + BPP, approx','2025'],fte:[120,'ref','BLS electrical/mech technician + overhead, NoVA','2025'],permit:[12,'ref','Loudoun by-right industrial, reported','2026'],qpf:[0,'ref','','2026'],solarCF:[0.19,'baseline','Global Solar Atlas, NoVA','2026'],windCF:[0.25,'baseline','Global Wind Atlas 100 m','2026'],geoClass:[0,'baseline','','2026'],gasAccess:[1,'baseline','Transco/Columbia pipelines','2026'],hydroMW:[0,'baseline','','2026'],nucPolicy:[1,'baseline','','2026'],gasPrice:[12,'ref','Henry Hub + basis, 2025 avg','2025']}},
+  'DE-HE':{name:'Hesse (Frankfurt), Germany',lat:50.11,lon:8.68,f:{tariff:[165,'ref','Eurostat industrial band ID, DE, incl. grid fees','2025'],capch:[12,'baseline','TenneT/Syna network charge structure','2026'],queue:[60,'ref','Frankfurt grid capacity reported exhausted until ~2030','2026-03'],saidi:[12,'ref','Bundesnetzagentur SAIDI','2024'],ci:[350,'ref','Ember DE 2024','2025'],co2:[75,'ref','EU ETS average 2025','2026'],twb:[21,'ref','ASHRAE 99.6% Frankfurt','2021'],ffree:[0.88,'baseline','dry-cooler hours below 27 °C','2026'],water:[2.1,'ref','Mainova industrial water','2025'],land:[400,'ref','Frankfurt industrial land','2026'],cci:[1.18,'ref','Turner & Townsend, Frankfurt','2025'],ixp:[5,'ref','DE-CIX Frankfurt','2026'],inc:[0,'ref','','2026'],ptax:[0.4,'ref','Grundsteuer B, approx','2025'],fte:[110,'ref','','2025'],permit:[18,'ref','BImSchG/BauGB typical','2026'],qpf:[1,'ref','grid application requires building permit in practice','2026'],solarCF:[0.12,'baseline','','2026'],windCF:[0.22,'baseline','','2026'],geoClass:[1,'baseline','Upper Rhine Graben deep geothermal','2026'],gasAccess:[1,'baseline','','2026'],hydroMW:[0,'baseline','','2026'],nucPolicy:[0,'ref','Atomgesetz phase-out','2023'],gasPrice:[35,'ref','TTF 2025 avg','2025']}},
+  'IE':{name:'Dublin, Ireland',lat:53.35,lon:-6.26,f:{tariff:[190,'ref','Eurostat IE industrial','2025'],capch:[10,'baseline','','2026'],queue:[84,'ref','EirGrid Dublin moratorium on new connections to 2028','2026'],saidi:[60,'ref','CRU','2024'],ci:[290,'ref','Ember IE 2024','2025'],co2:[75,'ref','EU ETS','2026'],twb:[18,'ref','ASHRAE 99.6% Dublin','2021'],ffree:[0.97,'baseline','','2026'],water:[2.5,'ref','Irish Water non-domestic','2025'],land:[250,'ref','','2026'],cci:[1.20,'ref','Turner & Townsend, Dublin','2025'],ixp:[10,'ref','INEX','2026'],inc:[0,'ref','','2026'],ptax:[0.5,'ref','commercial rates approx','2025'],fte:[105,'ref','','2025'],permit:[18,'ref','An Bord Pleanála typical','2026'],qpf:[1,'ref','','2026'],solarCF:[0.11,'baseline','','2026'],windCF:[0.35,'baseline','','2026'],geoClass:[0,'baseline','','2026'],gasAccess:[1,'baseline','','2026'],hydroMW:[0,'baseline','','2026'],nucPolicy:[0,'ref','prohibited by Electricity Regulation Act','1999'],gasPrice:[36,'ref','NBP/TTF','2025']}},
+  'SE':{name:'Luleå, Sweden',lat:65.58,lon:22.15,f:{tariff:[55,'ref','Eurostat SE industrial, SE1 zone','2025'],capch:[4,'baseline','','2026'],queue:[24,'ref','Svenska kraftnät regional, SE1','2026'],saidi:[80,'ref','Ei','2024'],ci:[25,'ref','Ember SE 2024','2025'],co2:[75,'ref','EU ETS (small exposure)','2026'],twb:[17,'ref','ASHRAE 99.6% Luleå','2021'],ffree:[0.99,'baseline','','2026'],water:[1.5,'ref','','2025'],land:[40,'ref','','2026'],cci:[1.10,'ref','Turner & Townsend, Stockholm proxy','2025'],ixp:[900,'ref','Netnod Stockholm','2026'],inc:[0,'ref','','2026'],ptax:[0.5,'ref','','2025'],fte:[95,'ref','','2025'],permit:[12,'ref','','2026'],qpf:[0,'ref','','2026'],solarCF:[0.10,'baseline','','2026'],windCF:[0.38,'baseline','','2026'],geoClass:[0,'baseline','','2026'],gasAccess:[0,'baseline','no gas grid in SE1','2026'],hydroMW:[500,'baseline','Lule River system, contractable','2026'],nucPolicy:[1,'ref','','2026'],gasPrice:[40,'baseline','LNG only','2025']}},
+  'IS':{name:'Reykjanes, Iceland',lat:63.85,lon:-22.4,f:{tariff:[45,'ref','Landsvirkjun large-user indicative, incl. transmission','2025'],capch:[3,'baseline','','2026'],queue:[18,'ref','Landsnet; capacity contracted case by case','2026'],saidi:[50,'ref','','2024'],ci:[28,'ref','Ember IS 2024','2025'],co2:[0,'ref','outside EU ETS for electricity use','2026'],twb:[14,'ref','ASHRAE 99.6% Keflavík','2021'],ffree:[1.0,'baseline','','2026'],water:[0.8,'ref','','2025'],land:[35,'ref','','2026'],cci:[1.25,'ref','island premium, estimate','2025'],ixp:[40,'ref','RIX Reykjavík','2026'],inc:[0,'ref','','2026'],ptax:[1.65,'ref','municipal property tax','2025'],fte:[100,'ref','','2025'],permit:[12,'ref','','2026'],qpf:[0,'ref','','2026'],solarCF:[0.08,'baseline','','2026'],windCF:[0.45,'baseline','','2026'],geoClass:[3,'ref','Reykjanes hydrothermal field','2026'],gasAccess:[0,'baseline','','2026'],hydroMW:[200,'baseline','Landsvirkjun contractable','2026'],nucPolicy:[0,'baseline','','2026'],gasPrice:[45,'baseline','','2025']}},
+  'AE':{name:'Abu Dhabi, UAE',lat:24.45,lon:54.4,f:{tariff:[75,'ref','EWEC/ADDC industrial slab','2025'],capch:[6,'baseline','','2026'],queue:[18,'ref','TAQA/EWEC large-load, reported','2026'],saidi:[10,'ref','','2024'],ci:[420,'ref','Ember AE 2024','2025'],co2:[0,'ref','','2026'],twb:[31,'ref','ASHRAE 99.6% Abu Dhabi','2021'],ffree:[0.15,'baseline','','2026'],water:[3.0,'ref','desalinated','2025'],land:[80,'ref','','2026'],cci:[0.95,'ref','Turner & Townsend, Abu Dhabi','2025'],ixp:[20,'ref','UAE-IX','2026'],inc:[0,'ref','','2026'],ptax:[0,'ref','','2025'],fte:[70,'ref','','2025'],permit:[9,'ref','','2026'],qpf:[0,'ref','','2026'],solarCF:[0.24,'baseline','','2026'],windCF:[0.15,'baseline','','2026'],geoClass:[0,'baseline','','2026'],gasAccess:[1,'baseline','','2026'],hydroMW:[0,'baseline','','2026'],nucPolicy:[1,'ref','Barakah operating','2026'],gasPrice:[10,'ref','regulated','2025']}},
+  'SG':{name:'Singapore',lat:1.35,lon:103.82,f:{tariff:[220,'ref','EMA commercial tariff','2025'],capch:[9,'baseline','','2026'],queue:[48,'ref','EDB DC-CFA allocation rounds','2026'],saidi:[1,'ref','EMA','2024'],ci:[400,'ref','Ember SG 2024','2025'],co2:[25,'ref','SG carbon tax 2026','2026'],twb:[29,'ref','ASHRAE 99.6% Changi','2021'],ffree:[0.05,'baseline','','2026'],water:[2.8,'ref','PUB industrial NEWater','2025'],land:[900,'ref','JTC industrial','2026'],cci:[1.05,'ref','','2025'],ixp:[10,'ref','Equinix SG1','2026'],inc:[0,'ref','','2026'],ptax:[1.0,'ref','IRAS non-residential','2025'],fte:[90,'ref','','2025'],permit:[12,'ref','','2026'],qpf:[1,'ref','DC-CFA award precedes connection','2026'],solarCF:[0.15,'baseline','','2026'],windCF:[0.05,'baseline','','2026'],geoClass:[0,'baseline','','2026'],gasAccess:[1,'baseline','LNG terminal','2026'],hydroMW:[0,'baseline','','2026'],nucPolicy:[0,'baseline','under study','2026'],gasPrice:[38,'ref','LNG-linked','2025']}},
+  'ZA':{name:'Gauteng, South Africa',lat:-26.2,lon:28.05,f:{tariff:[95,'ref','Eskom Megaflex average','2025'],capch:[7,'baseline','','2026'],queue:[24,'ref','Eskom Transmission, GCCA 2025','2026'],saidi:[1200,'ref','load-shedding history 2023–24, improving','2025'],ci:[850,'ref','Ember ZA 2024','2025'],co2:[10,'ref','SA carbon tax','2026'],twb:[20,'ref','ASHRAE 99.6% Johannesburg','2021'],ffree:[0.9,'baseline','','2026'],water:[1.5,'ref','Rand Water','2025'],land:[60,'ref','','2026'],cci:[0.80,'ref','','2025'],ixp:[15,'ref','NAPAfrica/JINX','2026'],inc:[0,'ref','','2026'],ptax:[1.2,'ref','','2025'],fte:[55,'ref','','2025'],permit:[12,'ref','','2026'],qpf:[0,'ref','','2026'],solarCF:[0.24,'baseline','','2026'],windCF:[0.30,'baseline','','2026'],geoClass:[0,'baseline','','2026'],gasAccess:[0,'baseline','limited','2026'],hydroMW:[0,'baseline','','2026'],nucPolicy:[1,'ref','Koeberg operating','2026'],gasPrice:[40,'baseline','LNG import','2025']}},
+  'BR-SP':{name:'Campinas, São Paulo, Brazil',lat:-22.9,lon:-47.06,f:{tariff:[90,'ref','ANEEL A2 industrial, CPFL','2025'],capch:[9,'baseline','','2026'],queue:[30,'ref','ONS/CPFL large-load, reported','2026'],saidi:[600,'ref','ANEEL DEC','2024'],ci:[100,'ref','Ember BR 2024','2025'],co2:[0,'ref','','2026'],twb:[24,'ref','ASHRAE 99.6% Campinas (Viracopos)','2021'],ffree:[0.7,'baseline','','2026'],water:[2.0,'ref','SANASA industrial','2025'],land:[120,'ref','','2026'],cci:[0.85,'ref','','2025'],ixp:[90,'ref','IX.br São Paulo','2026'],inc:[0,'ref','','2026'],ptax:[1.0,'ref','IPTU approx','2025'],fte:[45,'ref','','2025'],permit:[15,'ref','','2026'],qpf:[0,'ref','','2026'],solarCF:[0.20,'baseline','','2026'],windCF:[0.20,'baseline','','2026'],geoClass:[0,'baseline','','2026'],gasAccess:[1,'baseline','','2026'],hydroMW:[300,'baseline','contractable via ACL market','2026'],nucPolicy:[1,'ref','','2026'],gasPrice:[30,'baseline','','2025']}},
+  'AU-NSW':{name:'Western Sydney, Australia',lat:-33.85,lon:150.9,f:{tariff:[110,'ref','AEMO NSW large-industrial est.','2025'],capch:[8,'baseline','','2026'],queue:[36,'ref','Endeavour/Transgrid large-load, reported','2026'],saidi:[90,'ref','AER','2024'],ci:[500,'ref','Ember AU-NSW 2024','2025'],co2:[0,'ref','Safeguard mechanism not modeled','2026'],twb:[24,'ref','ASHRAE 99.6% Sydney','2021'],ffree:[0.7,'baseline','','2026'],water:[2.3,'ref','Sydney Water non-residential','2025'],land:[300,'ref','','2026'],cci:[1.15,'ref','Turner & Townsend, Sydney','2025'],ixp:[20,'ref','IX Australia SYD','2026'],inc:[0,'ref','','2026'],ptax:[1.0,'ref','council rates + land tax approx','2025'],fte:[100,'ref','','2025'],permit:[14,'ref','','2026'],qpf:[0,'ref','','2026'],solarCF:[0.21,'baseline','','2026'],windCF:[0.33,'baseline','','2026'],geoClass:[0,'baseline','','2026'],gasAccess:[1,'baseline','','2026'],hydroMW:[0,'baseline','','2026'],nucPolicy:[0,'ref','federal prohibition','2026'],gasPrice:[30,'ref','east-coast gas','2025']}}
+};
+const SITE_MAP={solarCF:'solarCF',windCF:'windCF',geoClass:'geoClass',gasAccess:'gasAccess',hydroMW:'hydroMW',nucPolicy:'nucPolicy',gasPrice:'gasPrice',tariff:'tariff',capch:'capch',queue:'queue',saidi:'saidi',ci:'ci',co2:'co2',twb:'twb',ffree:'ffree',water:'waterPrice',land:'land',cci:'cci',ixp:'ixpKm',inc:'incentive',ptax:'ptax',fte:'fteCost',permit:'permit',qpf:'qpf'};
+const LABEL_MAP={solarCF:'lab_solarCF',windCF:'lab_windCF',geoClass:'lab_geoClass',gasAccess:'lab_gasAccess',hydroMW:'lab_hydroMW',nucPolicy:'lab_nucPolicy',gasPrice:'lab_gasPrice',tariff:'lab_tariff',capch:'lab_capch',queue:'lab_queue',saidi:'lab_saidi',ci:'lab_ci',co2:'lab_co2',twb:'lab_twb',ffree:'lab_ffree',water:'lab_water',land:'lab_land',cci:'lab_cci',ixp:'lab_ixp',inc:'lab_inc',ptax:'lab_ptax',fte:'lab_fte',permit:'lab_permit',qpf:'lab_qpf'};
+const COOL={air:{k:.35,max:40,m2:6,g:2.2,cap:1.5},rdhx:{k:.22,max:80,m2:5.5,g:2.0,cap:1.2},dlc:{k:.12,max:150,m2:4.5,g:1.8,cap:1.0},imm:{k:.08,max:200,m2:4.0,g:1.8,cap:1.1}};
+const TIER={2:{a:.9974,mep:.80,eta:.05},3:{a:.9998,mep:1.0,eta:.06},4:{a:.99995,mep:1.35,eta:.08}};
+
+
+// ---------- custom sites (localStorage), import/export, curated-file loader ----------
+const CUST_KEY='terrestrial_custom_sites_v1';
+let CUSTOM={};try{CUSTOM=JSON.parse(localStorage.getItem(CUST_KEY)||'{}');}catch(e){CUSTOM={};}
+function rebuildSiteOptions(keep){
+  const sel=$('sitePreset');sel.innerHTML='';
+  const grp=(label,obj,prefix)=>{const g=document.createElement('optgroup');g.label=label;Object.entries(obj).forEach(([k,v])=>{const o=document.createElement('option');o.value=prefix+k;o.textContent=v.name;g.appendChild(o);});sel.appendChild(g);};
+  grp(SITES_SRC,SITES,'');if(Object.keys(CUSTOM).length)grp('Custom sites (this browser)',CUSTOM,'custom:');
+  const o=document.createElement('option');o.value='__custom';o.textContent='Custom (current values, unsaved)';sel.appendChild(o);
+  if(keep&&[...sel.options].some(x=>x.value===keep))sel.value=keep;
+}
+function siteByKey(key){return key.startsWith('custom:')?CUSTOM[key.slice(7)]:SITES[key];}
+function currentSiteRecord(name){
+  const s=siteByKey($('sitePreset').value)||{f:{}};const f={};
+  Object.entries(SITE_MAP).forEach(([k,id])=>{const rec=s.f&&s.f[k];const over=siteOverrides[id]||!rec;f[k]=[parseFloat($(id).value),over?'scenario':rec[1],over?'user':rec[2],over?new Date().toISOString().slice(0,7):rec[3]];});
+  return {name:name||$('siteName').value||'Custom site',lat:n('lat'),lon:n('lon'),f};
+}
+// jurisdiction-record (spec §7) ↔ flat preset conversion
+const J2F={tariff:['power','tariff_industrial_usd_mwh'],capch:['power','capacity_charge_usd_kw_month'],queue:['power','interconnection_queue_months'],saidi:['power','grid_reliability_saidi_min'],co2:['carbon','price_usd_tco2'],water:['water','usd_m3'],land:['land','industrial_land_usd_m2'],cci:['land','construction_cost_index'],permit:['land','permitting_months'],ptax:['land','property_tax_pct_capex_yr'],fte:['ops','staff_usd_fte_yr'],inc:['land','incentives','capex_credit_pct']};
+function fromJurisdiction(r){
+  const f={};const get=path=>{let o=r;for(const k of path){if(!o)return null;o=o[k];}return o;};
+  Object.entries(J2F).forEach(([k,path])=>{const v=get(path);if(v&&v.value!=null){f[k]=[k==='fte'?v.value/1000:v.value,v.label==='referential'?'ref':'baseline',v.source_url||v.note||'',v.as_of||''];}});
+  const q=get(['power','queue_requires_permits_first']);f.qpf=[q?1:0,'ref','',r.generated||''];
+  // fields the jurisdiction record does not carry (climate, grid intensity, IXP distance) keep the embedded preset value if one exists
+  const emb=SITES[r.id];if(emb)['ci','twb','ffree','ixp'].forEach(k=>{if(emb.f[k])f[k]=emb.f[k];});
+  return {name:r.name,lat:emb?emb.lat:0,lon:emb?emb.lon:0,f,record:r};
+}
+function toJurisdiction(site){
+  const w=(rec)=>({value:rec[0],label:rec[1]==='ref'?'referential':rec[1]==='scenario'?'baseline':'baseline',source_url:rec[1]==='scenario'?'':rec[2],note:rec[1]==='scenario'?'user override in tool':(rec[1]==='baseline'?rec[2]:undefined),as_of:rec[3]||new Date().toISOString().slice(0,7)});
+  const out={id:(site.name||'CUSTOM').toUpperCase().replace(/[^A-Z0-9]+/g,'-').slice(0,16),name:site.name,lat:site.lat,lon:site.lon,power:{},land:{incentives:{}},water:{},carbon:{},ops:{},climate_local:{}};
+  Object.entries(J2F).forEach(([k,path])=>{const rec=site.f[k];if(!rec)return;const v=w(rec);if(k==='fte')v.value=rec[0]*1000;let o=out;for(let i=0;i<path.length-1;i++){o=o[path[i]]=o[path[i]]||{};}o[path[path.length-1]]=v;});
+  out.power.queue_requires_permits_first=!!(site.f.qpf&&site.f.qpf[0]);
+  ['ci','twb','ffree','ixp'].forEach(k=>{if(site.f[k])out.climate_local[k]=w(site.f[k]);});
+  return out;
+}
+let SITES_SRC='Embedded presets (file)';
+async function loadCurated(){
+  try{const r=await fetch('./data/jurisdictions.json',{cache:'no-cache'});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();
+    const recs=(j.records||[]);let nNew=0;recs.forEach(rec=>{const site=fromJurisdiction(rec);if(site){if(!SITES[rec.id])nNew++;SITES[rec.id]=site;}});
+    SITES_SRC='Curated data/jurisdictions.json ('+recs.length+' records, generated '+(j.generated||'?')+')';
+    rebuildSiteOptions($('sitePreset').value);set('dataStatus','Location records: '+SITES_SRC+(nNew?'; '+nNew+' not in the embedded table':'')+'. Climate and IXP fields still from embedded values until the grid bundles are published.');
+    applySite($('sitePreset').value);calc();
+  }catch(e){set('dataStatus','Location records: embedded presets ('+(location.protocol==='file:'?'file:// origin — the curated file loads on a served origin':'data/jurisdictions.json not published yet')+').');}
+}
+const sel=$('sitePreset');
+let siteOverrides={}; // input id → true when user edited a preset-fed value
+function applySite(key){
+  if(key==='__custom'){set('siteBadge','Site: custom (unsaved)');set('siteNote','Current values are your own; save them under a name to keep them.');return;}
+  const s=siteByKey(key);if(!s)return;
+  $('siteName').value=key.startsWith('custom:')?s.name:'';
+  $('lat').value=s.lat;$('lon').value=s.lon;
+  Object.entries(SITE_MAP).forEach(([f,id])=>{const rec=s.f[f];if(!rec)return;$(id).value=rec[0];const lb=$(LABEL_MAP[f]);const cls=rec[1]==='ref'?'ref':rec[1]==='scenario'?'scenario':'baseline';if(lb){lb.textContent=cls==='ref'?'referential':cls;lb.className='badge '+cls;}});
+  siteOverrides={};
+  set('siteBadge','Site: '+s.name);
+  set('siteNote',Object.values(s.f).filter(r=>r[1]==='ref').length+' referential and '+Object.values(s.f).filter(r=>r[1]==='baseline').length+' baseline values loaded for this site. Edit any field to override it; it is then labelled scenario.');
+}
+rebuildSiteOptions();
+sel.addEventListener('change',()=>{applySite(sel.value);calc();});
+['lat','lon'].forEach(id=>$(id).addEventListener('input',()=>{siteOverrides[id]=true;}));
+$('siteSave').addEventListener('click',()=>{const name=($('siteName').value||'').trim()||prompt('Name for this site');if(!name)return;const key=name.replace(/[^a-z0-9]+/gi,'-').toLowerCase();CUSTOM[key]=currentSiteRecord(name);try{localStorage.setItem(CUST_KEY,JSON.stringify(CUSTOM));}catch(e){}rebuildSiteOptions('custom:'+key);applySite('custom:'+key);calc();});
+$('siteDelete').addEventListener('click',()=>{const k=$('sitePreset').value;if(!k.startsWith('custom:'))return;delete CUSTOM[k.slice(7)];try{localStorage.setItem(CUST_KEY,JSON.stringify(CUSTOM));}catch(e){}rebuildSiteOptions();applySite($('sitePreset').value);calc();});
+$('siteExport').addEventListener('click',()=>{const rec=toJurisdiction(currentSiteRecord());const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(rec,null,2)],{type:'application/json'}));a.download='site-'+rec.id.toLowerCase()+'.json';a.click();URL.revokeObjectURL(a.href);});
+$('siteImport').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{let j=JSON.parse(rd.result);const recs=j.records||[j];recs.forEach(r=>{const site=fromJurisdiction(r);if(r.lat!=null){site.lat=r.lat;site.lon=r.lon;}if(r.climate_local)Object.entries(r.climate_local).forEach(([k,v])=>{site.f[k]=[v.value,v.label==='referential'?'ref':'baseline',v.source_url||v.note||'',v.as_of||''];});const key=(r.id||site.name).replace(/[^a-z0-9]+/gi,'-').toLowerCase();CUSTOM[key]=site;});try{localStorage.setItem(CUST_KEY,JSON.stringify(CUSTOM));}catch(err){}rebuildSiteOptions();const last=Object.keys(CUSTOM).pop();if(last){$('sitePreset').value='custom:'+last;applySite('custom:'+last);}calc();}catch(err){alert('Could not read site file: '+(err&&err.message||err));}};rd.readAsText(f);});
+Object.values(SITE_MAP).forEach(id=>$(id).addEventListener('input',()=>{siteOverrides[id]=true;const f=Object.keys(SITE_MAP).find(k=>SITE_MAP[k]===id);const lb=$(LABEL_MAP[f]);if(lb){lb.textContent='scenario';lb.className='badge scenario';}}));
+
+const base={};
+applySite('US-VA');
+document.querySelectorAll('input,select').forEach(e=>base[e.id]=e.value);
+
+
+// ---------- generation option catalog (§8a; mirrored in data/power_options.json) ----------
+// capex $/kW, fom $/kW-yr, vom $/MWh, eff (fuel→electric), life yr, ci gCO2/kWh (at the fuel), lead mo, avail year, firm: baseload|dispatch|variable|storage|grid, dep
+const POWER_OPTIONS=[
+ {id:'grid',name:'Grid connection',firm:'grid',capex:0,fom:0,vom:0,eff:1,life:40,ci:'grid',lead:'queue',avail:2000,dep:'grid',label:'ref',src:'tariff & queue from jurisdiction record',unit:'MW'},
+ {id:'gridflex',name:'Flexible / non-firm interconnection',firm:'grid',capex:0,fom:0,vom:0,eff:1,life:40,ci:'grid',lead:'queue-18',avail:2000,dep:'grid',curt:400,label:'baseline',src:'queue reduction 18 mo, 400 curtailment h/yr — author baseline (FERC 2026 large-load orders)',unit:'MW'},
+ {id:'ppa',name:'PPA (contract, no plant)',firm:'baseload',capex:0,fom:0,vom:'ppa',eff:1,life:15,ci:30,lead:6,avail:2000,dep:'grid',label:'baseline',src:'delivered PPA price = tariff × 0.85 unless overridden',unit:'MW'},
+ {id:'recip',name:'Gas reciprocating engines',firm:'dispatch',capex:1200,fom:20,vom:6,eff:0.45,life:25,ci:'gas',lead:12,avail:2000,dep:'gas',label:'ref',src:'Lazard LCOE+ 2025 / vendor (Wärtsilä, Jenbacher) ranges',unit:'MW'},
+ {id:'aero',name:'Gas aeroderivative turbine',firm:'dispatch',capex:1400,fom:15,vom:5,eff:0.40,life:25,ci:'gas',lead:30,avail:2000,dep:'gas',label:'ref',src:'Lazard LCOE+ 2025 peaking',unit:'MW'},
+ {id:'ccgt',name:'Gas CCGT',firm:'baseload',capex:1500,fom:30,vom:3,eff:0.60,life:30,ci:'gas',lead:54,avail:2000,dep:'gas',label:'ref',src:'Lazard LCOE+ 2025; lead times 2026 order books',unit:'MW'},
+ {id:'ccgtccs',name:'Gas CCGT + carbon capture (90%)',firm:'baseload',capex:2900,fom:60,vom:8,eff:0.54,life:30,ci:'gas10',lead:66,avail:2029,dep:'gas',label:'baseline',src:'NREL ATB 2024 CCS class; availability author baseline',unit:'MW'},
+ {id:'h2ready',name:'Hydrogen-ready turbine (gas blend now)',firm:'dispatch',capex:1600,fom:18,vom:5,eff:0.42,life:25,ci:'gas',lead:40,avail:2000,dep:'gas',label:'baseline',src:'vendor premium ~15% over aeroderivative, author baseline',unit:'MW'},
+ {id:'sofc',name:'Fuel cells (SOFC)',firm:'baseload',capex:3500,fom:40,vom:10,eff:0.55,life:20,ci:'gas',lead:12,avail:2000,dep:'gas',label:'baseline',src:'Bloom Energy public figures, approx',unit:'MW'},
+ {id:'genset',name:'Diesel / gas backup gensets',firm:'backup',capex:800,fom:10,vom:20,eff:0.38,life:20,ci:'diesel',lead:12,avail:2000,dep:'none',label:'ref',src:'Lazard / vendor',unit:'MW'},
+ {id:'pv',name:'On-site solar PV',firm:'variable',capex:1100,fom:18,vom:0,eff:1,life:30,ci:0,lead:15,avail:2000,dep:'solar',label:'ref',src:'Lazard LCOE+ 2025 utility-scale',unit:'MW'},
+ {id:'wind',name:'On-site wind',firm:'variable',capex:1600,fom:35,vom:0,eff:1,life:25,ci:0,lead:30,avail:2000,dep:'wind',label:'ref',src:'Lazard LCOE+ 2025 onshore',unit:'MW'},
+ {id:'bess',name:'BESS storage',firm:'storage',capex:350,fom:5,vom:2,eff:0.87,life:15,ci:0,lead:9,avail:2000,dep:'none',label:'ref',src:'Lazard LCOS 2025 — $/kWh installed',unit:'MWh'},
+ {id:'geo',name:'Geothermal (hydrothermal)',firm:'baseload',capex:5500,fom:120,vom:2,eff:1,life:30,ci:40,lead:48,avail:2000,dep:'geo3',label:'ref',src:'Lazard LCOE+ 2025; IRENA',unit:'MW'},
+ {id:'egs',name:'Enhanced geothermal (EGS)',firm:'baseload',capex:7500,fom:130,vom:2,eff:1,life:30,ci:20,lead:42,avail:2028,dep:'geo1',label:'baseline',src:'Fervo public statements; DOE Liftoff; availability author baseline',unit:'MW'},
+ {id:'hydro',name:'Hydro / existing-plant capacity contract',firm:'baseload',capex:0,fom:0,vom:'hydro',eff:1,life:20,ci:10,lead:9,avail:2000,dep:'hydro',label:'baseline',src:'contract price = tariff × 0.8 unless overridden',unit:'MW'},
+ {id:'nuccontract',name:'Nuclear — existing plant contract / uprate',firm:'baseload',capex:0,fom:0,vom:'nuc',eff:1,life:20,ci:12,lead:24,avail:2000,dep:'nuc',label:'baseline',src:'contract price = tariff × 1.0 unless overridden (2025–26 hyperscaler deals)',unit:'MW'},
+ {id:'smr',name:'SMR (light-water, 50–300 MW)',firm:'baseload',capex:9000,fom:110,vom:10,eff:1,life:40,ci:12,lead:72,avail:2031,dep:'nuc',label:'baseline',src:'NREL ATB nuclear SMR moderate; availability author baseline',unit:'MW'},
+ {id:'micro',name:'Portable / micro reactor (1–20 MW)',firm:'baseload',capex:15000,fom:200,vom:15,eff:1,life:20,ci:12,lead:30,avail:2029,dep:'nuc',label:'baseline',src:'no delivered unit; author baseline from licensing announcements',unit:'MW'},
+ {id:'biomass',name:'Biomass / waste-heat CHP',firm:'baseload',capex:4000,fom:120,vom:15,eff:0.30,life:25,ci:50,lead:24,avail:2000,dep:'none',label:'baseline',src:'IEA; feedstock at gas-price proxy',unit:'MW'},
+ {id:'h2turb',name:'Hydrogen turbine (100% H₂)',firm:'dispatch',capex:1700,fom:20,vom:5,eff:0.40,life:25,ci:0,lead:36,avail:2030,dep:'none',label:'baseline',src:'fuel at 3× gas price; author baseline',unit:'MW'},
+];
+const FIRMF={baseload:.92,dispatch:.95,variable:1,storage:0,grid:1,backup:0};
+const CF_DEFAULT={baseload:.9,dispatch:.9,grid:1,backup:.02};
+const TEMPLATES={ // resource-aware: L = facility load MW; sizes divide by firmness so firm MW ≥ load
+ grid:L=>[['grid',L,0],['genset',L,0]],
+ bridge:L=>[['recip',L/.95,0],['grid',L,0],['genset',L*0.2,0]],
+ solarhyb:L=>[['pv',L*3,0],['bess',L*8,0],['recip',L/.95,0],['grid',L,0]],
+ windflex:L=>[['wind',L*2.5,0],['bess',L*6,0],['gridflex',L,0]],
+ geo:L=>{const g=n('geoClass')>=2,h=Math.min(n('hydroMW'),L/.92);const r=[];if(g)r.push(['geo',L/.92,0]);if(h>0)r.push(['hydro',g?Math.min(h,L*.5):h,0]);r.push(['grid',g?L*.5:Math.max(L*.5,L-h*.92),0],['genset',L*.2,0]);return r;},
+ nuc:L=>{const r=[];if(n('nucPolicy')>0){if(n('hydroMW')>0)r.push(['nuccontract',Math.min(n('hydroMW'),L/.92),0]);r.push(['smr',L/.92,0]);}r.push(['bess',L*4,0],['grid',L,0],['genset',L*.2,0]);return r;},
+ ccs:L=>[['ccgtccs',L/.92,0],['grid',L,0],['genset',L*.2,0]],
+};
+let MIX=[];
+function loadMW(){const rkw=n('rkw'),pu=Math.ceil(n('mw')*1000/rkw),u=pu+Math.ceil(pu*n('spare')/100);return Math.round(u*rkw/1000*(1+n('itoh')/100)*(sv('pueMode')==='manual'?n('pueManual'):derivedPUE())*10)/10;}
+function applyTemplate(key){const L=loadMW();MIX=(TEMPLATES[key]||TEMPLATES.grid)(L).map(([opt,mw,order])=>({opt,mw:Math.ceil(mw),order}));renderMix();}
+function renderMix(){
+  const box=$('mixRows');box.innerHTML='';
+  MIX.forEach((row,i)=>{const d=document.createElement('div');d.className='mixrow';
+    const opts=POWER_OPTIONS.map(o=>`<option value="${o.id}"${o.id===row.opt?' selected':''}>${o.name} (${o.unit})</option>`).join('');
+    d.innerHTML=`<select data-test-id="mixOpt${i}" data-test-kind="select" data-test-tab="power" data-test-label="Mix row ${i+1} option">${opts}</select><input data-test-id="mixMW${i}" data-test-kind="number" data-test-tab="power" data-test-label="Mix row ${i+1} MW/MWh" type="number" step="1" min="0" value="${row.mw}" title="MW (MWh for storage)"><input data-test-id="mixOrd${i}" data-test-kind="number" data-test-tab="power" data-test-label="Mix row ${i+1} order month" type="number" step="1" min="0" value="${row.order}" title="order month"><button data-test-id="mixDel${i}" data-test-kind="action" data-test-tab="power" data-test-label="Remove mix row ${i+1}" title="remove">×</button>`;
+    const [sel,mw,ord,del]=d.children;
+    sel.addEventListener('change',()=>{row.opt=sel.value;$('mixTemplate').value='custom';calc();});
+    mw.addEventListener('input',()=>{row.mw=parseFloat(mw.value)||0;$('mixTemplate').value='custom';calc();});
+    ord.addEventListener('input',()=>{row.order=parseFloat(ord.value)||0;$('mixTemplate').value='custom';calc();});
+    del.addEventListener('click',()=>{MIX.splice(i,1);$('mixTemplate').value='custom';renderMix();calc();});
+    box.appendChild(d);});
+}
+function optCF(o){if(o.id==='pv')return clamp(n('solarCF'),0,.4);if(o.id==='wind')return clamp(n('windCF'),0,.6);return CF_DEFAULT[o.firm]||.9;}
+function eligible(o){const g=n('geoClass');switch(o.dep){case 'gas':return n('gasAccess')>0;case 'geo3':return g>=2;case 'geo1':return g>=1;case 'hydro':return n('hydroMW')>0;case 'nuc':return n('nucPolicy')>0;case 'solar':return n('solarCF')>0;case 'wind':return n('windCF')>0;default:return true;}}
+function optLead(o){if(o.lead==='queue')return n('queue');if(o.lead==='queue-18')return Math.max(6,n('queue')-18);return o.lead;}
+function optReady(o,order){return Math.max(order+optLead(o),(o.avail-n('startYear'))*12);} // months from project start
+function optCI(o,y){if(o.ci==='grid')return n('ci')*Math.pow(1+n('ciEsc')/100,y);if(o.ci==='gas')return 202/o.eff;if(o.ci==='gas10')return 20.2/o.eff;if(o.ci==='diesel')return 267/o.eff;return o.ci;}
+function optVar(o,y){ // $/MWh variable cost incl. fuel and carbon
+  const tariff=n('tariff')*Math.pow(1+n('tariffEsc')/100,y), gas=n('gasPrice')*Math.pow(1+n('fuelEsc')/100,y), co2=n('co2')*optCI(o,y)/1e6;
+  if(o.firm==='grid')return tariff+co2;
+  if(o.vom==='ppa')return tariff*0.85+co2;if(o.vom==='hydro')return tariff*0.8+co2;if(o.vom==='nuc')return tariff*1.0+co2;
+  let fuel=0;if(o.ci==='gas'||o.ci==='gas10')fuel=gas/o.eff;else if(o.ci==='diesel')fuel=gas*2.2/o.eff;else if(o.id==='biomass')fuel=gas*0.8/o.eff;else if(o.id==='h2turb')fuel=gas*3/o.eff;
+  return o.vom+fuel+co2;
+}
+function crf(r,T){return r?r*Math.pow(1+r,T)/(Math.pow(1+r,T)-1):1/T;}
+function optLCOE(o,y,cf,rate){const fixed=(o.capex*crf(rate,o.life)+o.fom)*1000/(8760*Math.max(cf,1e-3));return (o.unit==='MWh'?0:fixed)+optVar(o,y);} // $/MWh at given CF
+// Dispatch one operating year: returns {firm, served[], cost, energy, ci, shortfall}
+function dispatchYear(y,loadMW,L,rate,ttp){
+  const entries=MIX.map(r=>({o:POWER_OPTIONS.find(x=>x.id===r.opt),mw:r.mw,order:r.order})).filter(e=>e.o&&e.mw>0&&eligible(e.o));
+  const monthsIn=(ttp+y*12); // months from project start at start of this operating year
+  const avail=e=>{const ready=optReady(e.o,e.order);return clamp((monthsIn+12-ready)/12,0,1);}; // fraction of this year the entry is available
+  const bessMWh=entries.filter(e=>e.o.firm==='storage').reduce((a,e)=>a+e.mw*avail(e),0);
+  const varMW=entries.filter(e=>e.o.firm==='variable').reduce((a,e)=>a+e.mw*optCF(e.o)*avail(e),0);
+  const firmable=varMW>0?clamp(.3+bessMWh/(varMW*14),0,1):0;
+  const sup=entries.filter(e=>e.o.firm!=='storage'&&e.o.firm!=='backup').map(e=>{const a=avail(e);let firm=e.mw*a;if(e.o.firm==='variable')firm=e.mw*optCF(e.o)*a*firmable;else firm*=FIRMF[e.o.firm]||1;if(e.o.curt)firm*=1-e.o.curt/8760*(1-n('flexFrac'));return {e,a,firm,v:optVar(e.o,y),fixed:(e.o.unit==='MWh'?0:e.mw*1000*(e.o.capex*crf(rate,e.o.life)+e.o.fom))*a};}).sort((a,b)=>a.v-b.v);
+  let rem=loadMW,cost=0,energy=0,co2=0,served=[];
+  const hours=8760*L;
+  for(const s of sup){const d=Math.min(rem,s.firm);rem-=d;const en=d*hours;cost+=s.fixed+en*s.v;energy+=en;co2+=en*optCI(s.e.o,y)/1000;if(d>0)served.push(s.e.o.id+' '+fmt(d,1));if(s.e.o.firm==='grid'&&d>0)cost+=d*1000*n('capch')*12*s.a;}
+  // storage and backup fixed costs
+  entries.filter(e=>e.o.firm==='storage'||e.o.firm==='backup').forEach(e=>{const a=avail(e);cost+=e.mw*1000*(e.o.capex*crf(rate,e.o.life)+e.o.fom)*a;if(e.o.firm==='backup')cost+=e.mw*1000*(e.o.fom)*0;});
+  const firm=sup.reduce((a,s)=>a+s.firm,0);
+  return {firm,served,cost,energy,ci:energy?co2/energy*1e6/1000:0,shortfall:rem>loadMW*0.005?rem:0,costMWh:energy?cost/energy:0};
+}
+function firstFirmMonth(loadMW){ // earliest month from project start when firm MW ≥ load
+  for(let m=0;m<=240;m++){const firm=MIX.map(r=>({o:POWER_OPTIONS.find(x=>x.id===r.opt),mw:r.mw,order:r.order})).filter(e=>e.o&&eligible(e.o)&&e.o.firm!=='storage'&&e.o.firm!=='backup'&&optReady(e.o,e.order)<=m).reduce((a,e)=>a+e.mw*(e.o.firm==='variable'?optCF(e.o)*.3:(FIRMF[e.o.firm]||1)),0);if(firm>=loadMW*0.999)return m;}
+  return Infinity;
+}
+
+function derivedPUE(){
+  const c=COOL[sv('cool')], t=TIER[sv('tier')];
+  return 1+n('etaElec')+c.k*(1-clamp(n('ffree'),0,1)*(1-n('rhoEcon')))+n('kAux');
+}
+
+function calc(){
+  if(!SILENT&&!OV&&$('mixTemplate').value!=='custom'){const key=$('mixTemplate').value;const L=loadMW();MIX=(TEMPLATES[key]||TEMPLATES.grid)(L).map(([opt,mw,order])=>({opt,mw:Math.ceil(mw),order}));renderMix();}
+  const years=Math.max(1,n('years')), rate=n('disc')/100, AF=pvFactor(rate,years);
+  const c=COOL[sv('cool')], tier=TIER[sv('tier')];
+  // compute block
+  const rkw=n('rkw'), prodUnits=Math.ceil(n('mw')*1000/rkw), spareUnits=Math.ceil(prodUnits*n('spare')/100), units=prodUnits+spareUnits;
+  const prodMW=prodUnits*rkw/1000, instMW=units*rkw/1000, itMW=instMW*(1+n('itoh')/100);
+  const util=clamp(n('util')/100,.01,1);
+  const pue=sv('pueMode')==='manual'?n('pueManual'):derivedPUE();
+  const facMW=itMW*pue;
+  const computeCost=units*n('rcost')*1e6;
+  // facility CAPEX
+  const white=units*n('rackm2'), grossA=white*n('gross'), siteA=grossA*n('siteRatio');
+  let rows=[], facCapex=0;
+  if(sv('facMode')==='single'){
+    facCapex=itMW*n('tFac')*1e6;
+    rows.push(['Facility (single $/MW basis)',facCapex,'scenario']);
+  }else{
+    const cci=n('cci');
+    const landC=siteA*n('land'), prep=siteA*n('siteprep')*cci, shell=grossA*n('shell')*cci, mep=itMW*n('mep')*1e6*tier.mep*cci, cool=itMW*n('coolCap')*1e6, ic=facMW*n('icCost')*1e6, fit=units*n('fitout')*1e3, fibre=n('fibreFixed')*1e6+n('ixpKm')*60e3;
+    const hard=prep+shell+mep+cool+ic+fit+fibre;
+    const soft=hard*n('soft')/100, cont=hard*n('cont')/100;
+    facCapex=landC+hard+soft+cont;
+    rows.push(['Land',landC,'referential'],['Site preparation',prep,'baseline'],['Shell',shell,'baseline'],['MEP (tier-scaled)',mep,'baseline'],['Cooling plant',cool,'baseline'],['Interconnection + substation',ic,'baseline'],['Fit-out',fit,'baseline'],['Fibre entry',fibre,'baseline'],['Soft costs',soft,'baseline'],['Contingency',cont,'baseline']);
+  }
+  const genCapex=MIX.reduce((a,r)=>{const o=POWER_OPTIONS.find(x=>x.id===r.opt);return o&&eligible(o)&&o.capex?a+r.mw*1000*o.capex:a;},0);
+  if(genCapex>0){facCapex+=genCapex;rows.push(['On-site generation & storage (mix)',genCapex,'referential']);}
+  const incentive=facCapex*n('incentive')/100;
+  const capex0=facCapex+computeCost-incentive;
+  rows.push(['Compute (installed units)',computeCost,'baseline']);
+  if(incentive)rows.push(['Incentive (capex credit)',-incentive,'referential']);
+  // availability
+  let avail;
+  if(sv('availMode')==='manual')avail=clamp(n('tAvail')/100,.01,1);
+  else{const backup=tier.a>=.9998?1:.8;avail=clamp(tier.a-Math.max(0,n('saidi')/525600*(1-backup)),.5,1);}
+  // energy and opex per period (year), with trajectories
+  const L=clamp(n('idle')+(1-n('idle'))*util,0,1);
+  const energyMWh=itMW*pue*8760*L;
+  const waterM3=itMW*1000*8760*L*parseFloat(sv('evap'))*(1-clamp(n('ffree'),0,1))/1000; // L/kWh_IT × kWh → L → m³
+  // timeline first (dispatch availability depends on it)
+  const permit=n('permit'), q=n('qpf')>0?1:0;
+  const cand={};
+  const tPower=firstFirmMonth(facMW);
+  cand['power mix']=Number.isFinite(tPower)?(q?permit+tPower:Math.max(permit,tPower)):Infinity;
+  cand['design + construction']=permit+n('design')+n('construct');
+  cand['long-lead equipment']=Math.max(permit,n('lead'));
+  const ttpKey=Object.keys(cand).reduce((a,b)=>cand[a]>=cand[b]?a:b), ttp=Number.isFinite(cand[ttpKey])?cand[ttpKey]:cand['design + construction'];
+  const gridOnly=MIX.every(r=>['grid','genset'].includes(r.opt))&&MIX.some(r=>r.opt==='grid');
+  let pvOps=0, ops1=null, co2Total=0, waterTotal=0, dispatch=[];
+  for(let y=0;y<years;y++){
+    const dy=dispatchYear(y,facMW,L,rate,ttp);dispatch.push(dy);
+    const tariff=n('tariff')*Math.pow(1+n('tariffEsc')/100,y);
+    const ciGrid=n('ci')*Math.pow(1+n('ciEsc')/100,y);
+    let energy,cap,ci;
+    if(gridOnly&&dy.shortfall<=0){energy=energyMWh*tariff;cap=facMW*1000*n('capch')*12;ci=ciGrid;}
+    else{energy=dy.cost;cap=0;ci=dy.ci;if(dy.shortfall>0){energy+=dy.shortfall*8760*L*tariff*3;}} // unserved load priced at 3× tariff as a penalty, flagged
+    const co2t=energyMWh*ci/1000, carbon=gridOnly?co2t*n('co2'):0; // mix costs already include carbon
+    const water=waterM3*n('waterPrice')*Math.pow(1.03,y);
+    let fixed;
+    if(sv('opexMode')==='single')fixed=facCapex*n('tOpex')/100;
+    else fixed=facCapex*(n('maint')+n('ptax')+n('ins')+n('sec'))/100+itMW*n('fteMW')*n('fteCost')*1e3;
+    const capEff=sv('opexMode')==='single'?0:cap;
+    const total=energy+capEff+carbon+water+fixed;
+    co2Total+=co2t; waterTotal+=waterM3;
+    if(y===0)ops1={energy,cap:capEff,carbon,water,fixed,total};
+    pvOps+=total/Math.pow(1+rate,y+1)*(1+rate); // annuity-immediate convention matches pvFactor
+  }
+  // orbital convention: level ops × AF. Reproduce exactly when trajectories are zero.
+  if(n('tariffEsc')===0&&n('ciEsc')===0&&waterM3===0)pvOps=ops1.total*AF;
+  // compute refresh, straight-line salvage as orbital
+  const refresh=Math.max(1,n('refresh'));
+  const salvage=(cost,t,interval)=>{const unused=clamp((t+interval-years)/interval,0,1);return cost*unused/Math.pow(1+rate,years)};
+  let pv=capex0+pvOps;
+  for(let t=refresh;t<years;t+=refresh)pv+=computeCost/Math.pow(1+rate,t)-salvage(computeCost,t,refresh);
+  pv-=salvage(facCapex,0,Math.max(1,n('tFacLife')));
+  if(sv('opexMode')!=='single')pv+=facCapex*n('decom')/100/Math.pow(1+rate,years);
+  const annual=pv/AF;
+  const tokensYear=n('tpsmw')*prodMW*util*avail*YEARSEC;
+  const tokenCost=annual/Math.max(1,tokensYear)*1e6;
+  const gpuh=annual/(prodUnits*n('gpus')*8760*util*avail);
+  const kwmo=(facCapex/pvFactor(rate,Math.max(1,n('tFacLife')))+(ops1.fixed))/(itMW*1000*12);
+  const capexPerMW=capex0/itMW;
+  const results={tokenCost,capexPerMW,pv,annual,tokensYear,pue,facMW,itMW,prodMW,units,prodUnits,avail,ttp,ttpKey,cand,facCapex,computeCost,rows,ops1,gpuh,kwmo,co2Total,waterTotal,energyMWh,siteA,grossA,dispatch,tPower,gridOnly};
+  lastData=results;
+  if(SILENT)return results;
+
+  // outputs
+  set('tok','$'+fmt(tokenCost,3));
+  set('tokDetail','annualized '+money(annual)+'/yr over '+fmt(tokensYear/1e12,1)+' T tokens/yr; horizon '+years+' yr, r '+fmt(rate*100,1)+'%');
+  set('capexMW',money(capexPerMW));
+  set('capexDetail','facility '+money(facCapex/itMW)+'/MW · compute '+money(computeCost/itMW)+'/MW · total '+money(capex0));
+  set('kwmo','$'+fmt(kwmo,0));
+  set('kwmoDetail','annuitized facility + fixed opex; compare with colocation and lessor rates');
+  set('ttp',fmt(ttp,0)+' mo');
+  set('ttpDetail','binding: '+ttpKey+(Number.isFinite(tPower)?' (firm power at '+fmt(tPower,0)+' mo)':'')+' · orbital comparator '+fmt(n('orbT'),0)+' mo');
+  set('pueMW',fmt(pue,2)+' · '+fmt(facMW,1)+' MW');
+  set('pueDetail',sv('pueMode')==='manual'?'manual PUE':'derived: '+sv('cool')+' architecture, free-cooling '+fmt(n('ffree')*100,0)+'% of hours');
+  set('gpuh','$'+fmt(gpuh,2));
+  const tokTotal=tokensYear*years;
+  set('env',fmt(co2Total*1e6/tokTotal*1e6,0)+' g · '+fmt(waterTotal*1e3/tokTotal*1e6,1)+' L');
+  set('envDetail',fmt(co2Total/years,0)+' tCO₂/yr · '+fmt(energyMWh/1000,1)+' GWh/yr · location-based Scope 2');
+  set('avail',fmt(avail*100,3)+'%');
+  set('availDetail',sv('availMode')==='manual'?'manual':'tier '+sv('tier')+' less unbacked grid interruptions (SAIDI '+fmt(n('saidi'),0)+' min)');
+  $('capexRows').innerHTML=rows.map(r=>'<tr><td>'+r[0]+'</td><td>'+fmt(r[1]/1e6,2)+'</td><td>'+fmt(r[1]/1e6/itMW,2)+'</td><td><span class="badge '+(r[2]==='referential'?'ref':r[2])+'">'+r[2]+'</span></td></tr>').join('')+'<tr><td><strong>Total</strong></td><td><strong>'+fmt(capex0/1e6,1)+'</strong></td><td><strong>'+fmt(capexPerMW/1e6,2)+'</strong></td><td></td></tr>';
+  const o=ops1;$('opexRows').innerHTML=[['Energy',o.energy],['Capacity charge',o.cap],['Carbon',o.carbon],['Water',o.water],['Fixed (maintenance, tax, insurance, security, staff)',o.fixed]].map(r=>'<tr><td>'+r[0]+'</td><td>'+fmt(r[1]/1e6,2)+'</td><td>'+fmt(r[1]/o.total*100,0)+'%</td></tr>').join('')+'<tr><td><strong>Total</strong></td><td><strong>'+fmt(o.total/1e6,2)+'</strong></td><td>100%</td></tr>';
+  // warnings
+  const w=[];
+  if(rkw>c.max)w.push('Unit TDP '+rkw+' kW exceeds the '+sv('cool')+' architecture maximum of '+c.max+' kW/rack.');
+  if(sv('pueMode')==='derived'&&pue>1.6)w.push('Derived PUE '+fmt(pue,2)+' is high for this climate/architecture; check free-cooling fraction.');
+  if(ttpKey==='long-lead equipment')w.push('Equipment lead time, not the power mix, is the binding constraint here.');
+  if(n('saidi')>500&&sv('availMode')!=='manual')w.push('Grid SAIDI '+fmt(n('saidi'),0)+' min/yr: backup sizing dominates availability; Tier II would be exposed.');
+  if(gridOnly&&n('queue')>=60)w.push('Interconnection queue of '+fmt(n('queue'),0)+' months with a grid-only mix: try the gas-bridge or contract templates.');
+  if(sv('scale')==='campus'&&n('mw')<100)w.push('Campus regime selected with less than 100 MW; phasing and on-site generation options assume campus scale.');
+  if(sv('scale')==='hall'&&n('mw')>60)w.push('Hall regime with '+fmt(n('mw'),0)+' MW; consider the campus regime.');
+  const st=$('status');st.innerHTML='<strong>'+(w.length?'Model cautions':'Scenario passes basic checks')+'</strong>'+(w.length?'<br>'+w.map(x=>'• '+x).join('<br>'):'');
+  st.style.borderLeftColor=w.some(x=>x.includes('exceeds'))?'var(--bad)':'var(--warn)';
+  set('unitsOut',fmt(units,0)+' units ('+fmt(prodUnits,0)+' productive + '+fmt(spareUnits,0)+' spare) · '+fmt(itMW,2)+' MW IT incl. overhead');
+  set('pueOut',fmt(derivedPUE(),3)+(sv('pueMode')==='manual'?' (not in use — manual)':''));
+  // provenance
+  const s=siteByKey(sel.value)||currentSiteRecord();
+  const pr=Object.entries(SITE_MAP).map(([f,id])=>{const rec=s.f[f];if(!rec)return '';const over=siteOverrides[id]||rec[1]==='scenario';const cls=over?'scenario':rec[1]==='ref'?'ref':'baseline';return '<tr><td>'+$(id).previousElementSibling.textContent.replace(/(referential|baseline|scenario)$/,'').trim()+'</td><td>'+$(id).value+'</td><td><span class="badge '+cls+'">'+(cls==='scenario'?'scenario':cls==='ref'?'referential':'baseline')+'</span></td><td>'+(over?(rec[2]==='user'||siteOverrides[id]?'user':rec[2]):rec[2]||'—')+'</td><td>'+(rec[3]||'—')+'</td></tr>';}).join('');
+  $('provRows').innerHTML=pr;
+  const isSc=(f,id)=>siteOverrides[id]||(s.f[f]&&s.f[f][1]==='scenario');const nRef=Object.entries(SITE_MAP).filter(([f,id])=>!isSc(f,id)&&s.f[f]&&s.f[f][1]==='ref').length, nBase=Object.entries(SITE_MAP).filter(([f,id])=>!isSc(f,id)&&s.f[f]&&s.f[f][1]==='baseline').length, nSc=Object.entries(SITE_MAP).filter(([f,id])=>isSc(f,id)).length;
+  set('provBadge','Location inputs: '+nRef+' referential · '+nBase+' baseline · '+nSc+' scenario');
+  set('footerNote','Active site: '+(s.name||'custom')+' ('+fmt(n('lat'),2)+', '+fmt(n('lon'),2)+'). Facility '+fmt(grossA,0)+' m² gross on '+fmt(siteA/1e4,1)+' ha. PUE '+fmt(pue,3)+'. Composed facility cost '+money(facCapex/itMW)+'/MW IT.');
+  // LCOE table
+  const lcoeRows=POWER_OPTIONS.filter(o=>o.firm!=='backup').map(o=>{const el=eligible(o);const cf=optCF(o);const ready=optReady(o,0);const lc=o.firm==='grid'?optVar(o,0)+n('capch')*12/(8760*L):optLCOE(o,0,cf,rate);return '<tr'+(el?'':' class="muted"')+'><td>'+o.name+(o.unit==='MWh'?' ($/MWh throughput excl. charging)':'')+'</td><td>'+(el?'yes':'no — '+o.dep)+'</td><td>'+fmt(ready,0)+'</td><td>'+(o.firm==='storage'?'—':fmt(cf*100,0)+'%')+'</td><td>'+fmt(lc,0)+'</td><td>'+fmt(optCI(o,0),0)+'</td><td><span class="badge '+o.label+'">'+(o.label==='ref'?'referential':o.label)+'</span></td></tr>';}).join('');
+  $('lcoeRows').innerHTML=lcoeRows;
+  set('lcoeNote','LCOE at the CF shown (dispatchable at 90%; a peaker run at 15% costs 3–4× more per MWh — the mix table prices options at the dispatch they actually get). Grid line = tariff + capacity charge spread over delivered energy + carbon. Earliest firm month counts lead time from project start '+fmt(n('startYear'),0)+' and each option\'s earliest availability year. Sources: Lazard LCOE+ 2025, NREL ATB 2024, IEA; contract-price rows are tariff-relative baselines.');
+  $('mixRowsOut').innerHTML=dispatch.map((d,y)=>'<tr'+(d.shortfall>0?' class="bad"':'')+'><td>'+(y+1)+'</td><td>'+fmt(facMW,1)+'</td><td>'+fmt(d.firm,1)+'</td><td style="text-align:left">'+(d.served.join(', ')||'—')+'</td><td>'+fmt(d.costMWh,0)+'</td><td>'+fmt(d.ci,0)+'</td><td>'+(d.shortfall>0?fmt(d.shortfall,1)+' MW':'—')+'</td></tr>').join('');
+  set('mixCostOut',dispatch[0]?'$'+fmt(dispatch[0].costMWh,0)+'/MWh firm-equivalent · '+fmt(dispatch[0].ci,0)+' gCO₂/kWh':'—');
+  set('tPowerOut',Number.isFinite(tPower)?fmt(tPower,0)+' months from project start':'never — mix does not cover load');
+  if(!Number.isFinite(tPower))w.push('Supply mix never reaches facility load ('+fmt(facMW,1)+' MW firm): add capacity or check eligibility (resources, policy).');
+  if(dispatch.some(d=>d.shortfall>0))w.push('Shortfall in some operating years: unserved load is priced at 3× tariff as a penalty; resize the mix.');
+  st.innerHTML='<strong>'+(w.length?'Model cautions':'Scenario passes basic checks')+'</strong>'+(w.length?'<br>'+w.map(x=>'• '+x).join('<br>'):'');
+  runSensitivity(results);
+  return results;
+}
+
+const SENS_PARAMS=[['tariff','Electricity tariff'],['pueManual','Manual PUE'],['ffree','Free-cooling fraction'],['rcost','Compute $/unit'],['tpsmw','Tokens/s/MW'],['util','Utilization'],['refresh','Refresh interval'],['mep','MEP $M/MW'],['shell','Shell $/m²'],['cci','Construction index'],['land','Land $/m²'],['icCost','Interconnection $M/MW'],['capch','Capacity charge'],['disc','Discount rate'],['years','Horizon'],['maint','Maintenance %'],['fteCost','Staff cost'],['co2','Carbon price'],['ci','Grid intensity'],['spare','Spare %'],['itoh','IT overhead'],['tariffEsc','Tariff escalation']];
+function runSensitivity(baseR){
+  const rows=[];SILENT=true;
+  try{for(const [id,label] of SENS_PARAMS){const v=n(id);if(!Number.isFinite(v))continue;if(id==='pueManual'&&sv('pueMode')!=='manual')continue;if(id==='ffree'&&sv('pueMode')==='manual')continue;const d=Math.abs(v)*.2||.2;OV={[id]:v-d};const lo=calc().tokenCost;OV={[id]:v+d};const hi=calc().tokenCost;rows.push({id,label,lo:lo-baseR.tokenCost,hi:hi-baseR.tokenCost,span:Math.abs(hi-lo)});}}
+  finally{OV=null;SILENT=false;}
+  rows.sort((a,b)=>b.span-a.span);
+  const top=rows.slice(0,16), maxAbs=Math.max(.0001,...top.map(r=>Math.max(Math.abs(r.lo),Math.abs(r.hi))));
+  const cx=400,half=280,rowH=24,y0=14,sx=v=>cx+v/maxAbs*half;
+  let out=`<line x1="${cx}" y1="${y0-6}" x2="${cx}" y2="${y0+top.length*rowH}" stroke="#596575"/>`;
+  top.forEach((r,i)=>{const y=y0+i*rowH;out+=`<text x="${cx-half-8}" y="${y+15}" fill="#c7d0da" font-size="12">${r.label}</text>`;for(const v of [r.lo,r.hi]){const x=Math.min(sx(0),sx(v)),wd=Math.abs(sx(v)-sx(0));out+=`<rect x="${x}" y="${y+4}" width="${Math.max(1,wd)}" height="14" fill="${v<0?'#3fb950':'#f85149'}" opacity=".8"/>`;}out+=`<text x="${sx(Math.max(r.lo,r.hi))+5}" y="${y+15}" fill="#9da7b3" font-size="11">${r.hi>=0?'+':''}${fmt(r.hi,4)} / ${r.lo>=0?'+':''}${fmt(r.lo,4)}</text>`;});
+  out+=`<text x="${cx}" y="${y0+top.length*rowH+18}" text-anchor="middle" fill="#8f9aa6" font-size="11">Δ $/1M tokens vs base $${fmt(baseR.tokenCost,4)} · red = cost up, green = cost down · label order: +20% / −20%</text>`;
+  $('tornado').innerHTML=out;$('tornado').setAttribute('viewBox','0 0 760 '+(y0+top.length*rowH+30));
+  if(top.length)set('tornadoNote','Top driver: '+top[0].label+' (span $'+fmt(top[0].span,4)+'). Selects are held fixed; one-at-a-time, linear ±20%. Looked-up location values are included so the chart shows how wrong a location fact would have to be to matter.');
+}
+
+// ---------- events ----------
+$('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll('#tabs button').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.pane').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.p).classList.add('active');});
+document.querySelectorAll('input,select').forEach(e=>{if(e.type!=='file')e.addEventListener('input',calc);});
+$('calc').addEventListener('click',calc);
+$('reset').addEventListener('click',()=>{Object.entries(base).forEach(([id,v])=>{const e=$(id);if(e&&e.type!=='file')e.value=v;});applySite($('sitePreset').value);applyTemplate('grid');calc();});
+$('mixTemplate').addEventListener('change',()=>{if($('mixTemplate').value!=='custom')applyTemplate($('mixTemplate').value);calc();});
+$('mixAdd').addEventListener('click',()=>{MIX.push({opt:'pv',mw:10,order:0});$('mixTemplate').value='custom';renderMix();calc();});
+$('download').addEventListener('click',()=>{const o={model:'terrestrial_ai_datacenter',version:'0.4',site:$('sitePreset').value,inputs:{},mix:MIX,overrides:Object.keys(siteOverrides),results:lastData?{tokenCost:lastData.tokenCost,capexPerMW:lastData.capexPerMW,pue:lastData.pue,ttp:lastData.ttp,binding:lastData.ttpKey}:null};document.querySelectorAll('input,select').forEach(e=>{if(e.type==='file')return;o.inputs[e.id]=e.type==='number'?Number(e.value):e.value;});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));a.download='terrestrial-ai-scenario.json';a.click();URL.revokeObjectURL(a.href);});
+
+// ---------- break-even ----------
+$('breakeven').addEventListener('click',()=>{$('beBox').style.display='block';solveBreakeven();});
+$('beClose').addEventListener('click',()=>{$('beBox').style.display='none'});
+['beTarget','beGoal','beVal'].forEach(id=>$(id).addEventListener('input',solveBreakeven));
+function solveBreakeven(){
+  const id=$('beTarget').value, goal=$('beGoal').value, target=n('beVal');
+  const cur=n(id);
+  const f=v=>{OV={[id]:v};SILENT=true;let r;try{r=calc();}finally{SILENT=false;OV=null;}return (goal==='tok'?r.tokenCost:r.ttp)-target;};
+  let lo=Math.max(1e-6,cur/50),hi=cur*50;if(id==='util'){lo=1;hi=100;}
+  let flo=f(lo),fhi=f(hi);
+  if(flo*fhi>0){set('beResult','No value of '+$('beTarget').selectedOptions[0].textContent+' in ['+fmt(lo,3)+', '+fmt(hi,3)+'] reaches the target; the gap is structural for this input.');calc();return;}
+  for(let i=0;i<60;i++){const m=Math.sqrt(lo*hi);const fm=f(m);if(fm*flo<0){hi=m;fhi=fm;}else{lo=m;flo=fm;}}
+  const x=Math.sqrt(lo*hi);
+  set('beResult',$('beTarget').selectedOptions[0].textContent+' = '+fmt(x,3)+' (currently '+fmt(cur,3)+') reaches '+(goal==='tok'?'$'+fmt(target,3)+' / 1M tokens':fmt(target,0)+' months to power')+' with all other inputs fixed.');
+  calc();
+}
+
+// ---------- self-tests ----------
+function approx(a,b,tol){return Math.abs(a-b)<=tol*Math.max(1,Math.abs(b));}
+function runTests(){
+  const rows=[];const add=(name,exp,act,ok)=>rows.push({name,exp,act,ok});
+  const pv=pvFactor(.08,10);add('Annuity factor r=8%, 10 yr','6.710',fmt(pv,3),approx(pv,6.7101,.001));
+  const wr=wright(6,1,.92);add('Wright multiplier, unit 6 at 92%','0.806',fmt(wr,3),approx(wr,Math.pow(.92,Math.log2(6)),.001));
+  const hv=haversineKm(50.11,8.68,52.37,4.90);add('Haversine Frankfurt→Amsterdam','~364 km',fmt(hv,0)+' km',approx(hv,364,.02));
+  const wb=wetBulbStull(30,50);add('Wet-bulb (Stull) 30 °C, 50% RH','~22.0 °C',fmt(wb,1)+' °C',approx(wb,22.0,.03));
+  // parity with orbital §21 terrestrial stub: 1 MW, 10% spares, single facility 12 $M/MW, PUE 1.3, $80 flat, 4% opex, 99.5%, horizon 10, refresh 3, L=U (a=0)
+  const savedSel={};['facMode','opexMode','pueMode','availMode'].forEach(id=>{savedSel[id]=$(id).value;});
+  $('facMode').value='single';$('opexMode').value='single';$('pueMode').value='manual';$('availMode').value='manual';
+  const savedMix=JSON.parse(JSON.stringify(MIX));applyTemplate('grid');MIX=[{opt:'grid',mw:2,order:0}];
+  let par;SILENT=true;try{OV={mw:1,spare:10,tFac:12,pueManual:1.3,tariff:80,tariffEsc:0,ciEsc:0,tOpex:4,tAvail:99.5,years:10,disc:8,refresh:3,tFacLife:15,rcost:4,itoh:10,util:75,tpsmw:2800000,idle:0,incentive:0,co2:0,rkw:135,gpus:72};par=calc().tokenCost;}finally{OV=null;SILENT=false;Object.entries(savedSel).forEach(([id,v])=>$(id).value=v);}
+  add('Orbital parity: terrestrial stub inputs → $/1M tokens','$0.247 (orbital §21)','$'+fmt(par,4),approx(par,.247,.002));
+  // LCOE closed form: recips at 90% CF
+  const rc=POWER_OPTIONS.find(o=>o.id==='recip');let lc;SILENT=true;try{OV={gasPrice:40,fuelEsc:0,co2:0,disc:8};lc=optLCOE(rc,0,.9,.08);}finally{OV=null;SILENT=false;}
+  const expLC=(1200*crf(.08,25)+20)*1000/(8760*.9)+6+40/.45;add('LCOE closed form: recips, 90% CF, $40/MWh_th, 8%','$'+fmt(expLC,1)+'/MWh','$'+fmt(lc,1)+'/MWh',approx(lc,expLC,.001));
+  // hybrid template ordering at a Phoenix-class site: PV LCOE < mix firm-equivalent < peaker-only LCOE
+  const savedT=$('mixTemplate').value;applyTemplate('solarhyb');let hyb;SILENT=true;try{OV={solarCF:.26,gasAccess:1,gasPrice:15,co2:0,queue:200,startYear:2027};const r=calc();const pv=optLCOE(POWER_OPTIONS.find(o=>o.id==='pv'),0,.26,r.pv?0.08:0.08);const pk=optLCOE(rc,0,.9,.08);hyb={mix:r.dispatch[0].costMWh,pv,pk:optLCOE(rc,0,.15,.08)};}finally{OV=null;SILENT=false;}
+  MIX=savedMix;renderMix();$('mixTemplate').value=savedT;
+  add('Hybrid template (PV+BESS+recips, Phoenix-class CF, $15 gas): PV LCOE < mix firm-equivalent < recips alone at 15% CF','ordered','$'+fmt(hyb.pv,0)+' < $'+fmt(hyb.mix,0)+' < $'+fmt(hyb.pk,0),hyb.pv<hyb.mix&&hyb.mix<hyb.pk);
+  // composition: §10.2 stack at US average, Tier III, air ≈ 12 $M/MW IT
+  const saved2={fac:$('facMode').value,cool:$('cool').value,tier:$('tier').value,mix:JSON.parse(JSON.stringify(MIX))};MIX=[{opt:'grid',mw:100,order:0}];$('facMode').value='stack';$('cool').value='air';$('tier').value='3';
+  let comp;SILENT=true;try{OV={cci:1,land:150,siteprep:60,shell:2200,mep:6.3,coolCap:1.5,icCost:.8,fitout:120,fibreFixed:2,ixpKm:30,soft:12,cont:10,gross:2.2,siteRatio:3,rackm2:6,incentive:0,pueManual:1.3,mw:40,spare:5,itoh:10};const r=calc();comp=r.facCapex/r.itMW/1e6;}finally{OV=null;SILENT=false;$('facMode').value=saved2.fac;$('cool').value=saved2.cool;$('tier').value=saved2.tier;MIX=saved2.mix;}
+  add('Composition: §10.2 stack, US avg, Tier III, air, grid-only (gensets priced in the mix)','≈ $12M / MW IT (±5%)','$'+fmt(comp,2)+'M',approx(comp,12,.05));
+  // layout: no horizontal overflow at narrow width is a browser check; report viewport
+  const untagged=[...document.querySelectorAll('.pane input,.pane select,.pane button,.actions button')].filter(e=>e.id&&!e.dataset.testId);add('Testability: every interactive element in panes/actions carries data-test-* tags','0 untagged',untagged.length+' untagged',untagged.length===0);
+  const rt=(()=>{const before=JSON.stringify(currentSiteRecord('rt'));const j=toJurisdiction(currentSiteRecord('rt'));const back=fromJurisdiction(Object.assign({},j,{id:'__rt'}));return Object.keys(J2F).every(k=>!currentSiteRecord('rt').f[k]||Math.abs(back.f[k][0]-currentSiteRecord('rt').f[k][0])<1e-9);})();add('Site record round-trip: preset → jurisdiction JSON → preset','values preserved',String(rt),rt);
+  const ov=document.documentElement.scrollWidth<=window.innerWidth+1;add('Layout: no horizontal overflow at current viewport ('+window.innerWidth+' px)','true',String(ov),ov);
+  calc();
+  const pass=rows.filter(r=>r.ok).length;
+  $('testRows').innerHTML=rows.map(r=>'<tr><td>'+r.name+'</td><td>'+r.exp+'</td><td>'+r.act+'</td><td class="'+(r.ok?'good':'bad')+'">'+(r.ok?'PASS':'FAIL')+'</td></tr>').join('')+'<tr><td colspan="3"><strong>'+pass+' / '+rows.length+' passed</strong></td><td class="'+(pass===rows.length?'good':'bad')+'">'+(pass===rows.length?'ALL PASS':'CHECK')+'</td></tr>';
+  $('testBox').style.display='block';$('testBox').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+$('runtests').addEventListener('click',runTests);
+$('testClose').addEventListener('click',()=>{$('testBox').style.display='none'});
+
+// ---------- Specification viewer (same renderer as the orbital tool) ----------
+function escHtml(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function inlineMd(t){t=escHtml(t);t=t.replace(/\$([^$\n]+?)\$/g,(m,x)=>'<code>'+x+'</code>');t=t.replace(/`([^`]+)`/g,'<code>$1</code>');t=t.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/~~([^~]+)~~/g,'<s>$1</s>').replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>');t=t.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');return t;}
+function renderMd(md){
+  const lines=md.replace(/\r/g,'').split('\n');let out='',i=0,inList=null,para=[];
+  const flushP=()=>{if(para.length){out+='<p>'+inlineMd(para.join(' '))+'</p>';para=[];}};
+  const closeList=()=>{if(inList){out+='</'+inList+'>';inList=null;}};
+  while(i<lines.length){const L=lines[i];
+    if(/^\s*\$\$/.test(L)){flushP();closeList();let buf=[];const first=L.trim().slice(2);
+      if(first.endsWith('$$')&&first.length>=2){buf.push(first.slice(0,-2));i++;}
+      else{if(first)buf.push(first);i++;while(i<lines.length){const t=lines[i];if(/^\s*\$\$\s*$/.test(t)){i++;break;}if(t.trimEnd().endsWith('$$')){buf.push(t.trimEnd().slice(0,-2));i++;break;}buf.push(t);i++;}}
+      out+='<pre class="math">'+escHtml(buf.join('\n').trim())+'</pre>';continue;}
+    if(/^```/.test(L)){flushP();closeList();let buf=[];i++;while(i<lines.length&&!/^```/.test(lines[i]))buf.push(lines[i++]);i++;out+='<pre>'+escHtml(buf.join('\n'))+'</pre>';continue;}
+    if(/^\s*\|/.test(L)){flushP();closeList();const rows=[];while(i<lines.length&&/^\s*\|/.test(lines[i]))rows.push(lines[i++]);const cells=r=>r.trim().replace(/^\||\|$/g,'').split('|').map(c=>c.trim());let html='<div class="table"><table>';rows.forEach((r,k)=>{if(k===1&&/^[\s|:-]+$/.test(r))return;const tag=k===0?'th':'td';html+='<tr>'+cells(r).map(c=>'<'+tag+'>'+inlineMd(c)+'</'+tag+'>').join('')+'</tr>';});out+=html+'</table></div>';continue;}
+    const h=L.match(/^(#{1,6})\s+(.*)/);if(h){flushP();closeList();out+='<h'+h[1].length+'>'+inlineMd(h[2])+'</h'+h[1].length+'>';i++;continue;}
+    if(/^\s*(---|\*\*\*)\s*$/.test(L)){flushP();closeList();out+='<hr>';i++;continue;}
+    if(/^\s*>/.test(L)){flushP();closeList();out+='<blockquote>'+inlineMd(L.replace(/^\s*>\s?/,''))+'</blockquote>';i++;continue;}
+    const ul=L.match(/^\s*[-*]\s+(.*)/),ol=L.match(/^\s*\d+\.\s+(.*)/);
+    if(ul||ol){flushP();const tag=ul?'ul':'ol';if(inList!==tag){closeList();out+='<'+tag+'>';inList=tag;}out+='<li>'+inlineMd((ul||ol)[1])+'</li>';i++;continue;}
+    if(!L.trim()){flushP();closeList();i++;continue;}
+    para.push(L.trim());i++;}
+  flushP();closeList();return out;
+}
+let SPEC_MD=null;
+async function loadSpec(){if(SPEC_MD)return SPEC_MD;try{const r=await fetch('./terrestrial_datacenter_model_specification.md',{cache:'no-cache'});if(!r.ok)throw new Error('HTTP '+r.status);SPEC_MD=await r.text();return SPEC_MD;}catch(e){return null;}}
+async function showSpec(){$('specModal').style.display='block';const md=await loadSpec();$('specBody').innerHTML=md?renderMd(md):'<p class="muted">The specification file could not be fetched from this location (from a <code>file://</code> origin browsers block sibling-file reads). Use "load file" above to open <code>terrestrial_datacenter_model_specification.md</code> from disk, or view it on the GitHub Pages site where it loads automatically.</p>';}
+function specWindow(){const md=SPEC_MD;if(!md){alert('Load the specification first (fetch or file).');return;}const css=document.querySelector('style').textContent;const w=window.open('','_blank','width=1000,height=800');if(!w)return;w.document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Terrestrial AI DC model — specification</title><style>'+css+'</style></head><body><div class="wrap"><div id="specBody">'+renderMd(md)+'</div></div></body></html>');w.document.close();}
+$('openSpec').addEventListener('click',showSpec);
+$('specClose').addEventListener('click',()=>{$('specModal').style.display='none'});
+$('specModal').addEventListener('click',e=>{if(e.target===$('specModal'))$('specModal').style.display='none'});
+$('specWindow').addEventListener('click',specWindow);
+$('specFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{SPEC_MD=rd.result;$('specBody').innerHTML=renderMd(SPEC_MD);};rd.readAsText(f);});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('specModal').style.display='none';});
+
+// ---------- testability tags (shared convention with the orbital tool) ----------
+document.querySelectorAll('.pane').forEach(p=>{const tab=p.id;p.querySelectorAll('input,select,button,output').forEach(e=>{if(!e.id)return;const lab=e.previousElementSibling&&e.previousElementSibling.tagName==='LABEL'?e.previousElementSibling.textContent.replace(/\s*(anchor|referential|baseline|scenario|derived)$/,'').trim():e.textContent.trim();e.dataset.testId=e.id;e.dataset.testKind=e.tagName==='OUTPUT'?'readout':e.tagName==='BUTTON'?'action':e.type==='number'?'number':e.type==='text'?'text':e.type==='file'?'file':'select';e.dataset.testTab=tab;e.dataset.testLabel=lab;});});
+document.querySelectorAll('.actions button, #beBox select, #beBox input, #beBox button, #testBox button, #specModal button').forEach(e=>{if(!e.id)return;e.dataset.testId=e.id;e.dataset.testKind=e.tagName==='BUTTON'?'action':'select';e.dataset.testTab='global';e.dataset.testLabel=e.textContent.trim()||e.id;});
+document.querySelectorAll('.metric .v, .metric .l, .call, #tornadoNote, #footerNote').forEach(e=>{if(!e.id)return;e.dataset.testId=e.id;e.dataset.testKind='readout';e.dataset.testTab='results';e.dataset.testLabel=(e.parentElement.querySelector('.l')||e).textContent.trim();});
+applyTemplate('grid');
+if(new URLSearchParams(location.search).has('test')){calc();runTests();}
+calc();
+if(location.protocol!=='file:')loadCurated();
+})();
+</script>
+</body>
+</html>
