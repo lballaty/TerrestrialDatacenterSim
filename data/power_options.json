@@ -1,0 +1,1168 @@
+{
+ "schema": "terrestrial-power-options/0.7",
+ "generated": "2026-09-05",
+ "note": "Mirror of the catalog embedded in index.html v0.4 (§8a). Contract rows (ppa, hydro, nuccontract) price relative to the jurisdiction tariff.",
+ "records": [
+  {
+   "id": "grid",
+   "name": "Grid connection",
+   "firmness": "grid",
+   "unit": "MW",
+   "dependency": "grid",
+   "capex_usd_per_kw": {
+    "value": 0.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "tariff & queue from jurisdiction record"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 0.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "tariff & queue from jurisdiction record"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 0.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "tariff & queue from jurisdiction record"
+   },
+   "efficiency": {
+    "value": 1.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "tariff & queue from jurisdiction record"
+   },
+   "life_years": {
+    "value": 40.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": "grid",
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": "queue",
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2000.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "gridflex",
+   "name": "Flexible / non-firm interconnection",
+   "firmness": "grid",
+   "unit": "MW",
+   "dependency": "grid",
+   "capex_usd_per_kw": {
+    "value": 0.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "queue reduction 18 mo, 400 curtailment h/yr — author baseline (FERC 2026 large-load orders)"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 0.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "queue reduction 18 mo, 400 curtailment h/yr — author baseline (FERC 2026 large-load orders)"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 0.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "queue reduction 18 mo, 400 curtailment h/yr — author baseline (FERC 2026 large-load orders)"
+   },
+   "efficiency": {
+    "value": 1.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "queue reduction 18 mo, 400 curtailment h/yr — author baseline (FERC 2026 large-load orders)"
+   },
+   "life_years": {
+    "value": 40.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": "grid",
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": "queue-18",
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2000.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   },
+   "curtailment_hours_yr": {
+    "value": 400.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "author baseline"
+   }
+  },
+  {
+   "id": "ppa",
+   "name": "PPA (contract, no plant)",
+   "firmness": "baseload",
+   "unit": "MW",
+   "dependency": "grid",
+   "capex_usd_per_kw": {
+    "value": 0.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "delivered PPA price = tariff × 0.85 unless overridden"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 0.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "delivered PPA price = tariff × 0.85 unless overridden"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": "ppa",
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "delivered PPA price = tariff × 0.85 unless overridden"
+   },
+   "efficiency": {
+    "value": 1.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "delivered PPA price = tariff × 0.85 unless overridden"
+   },
+   "life_years": {
+    "value": 15.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": 30.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 6.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2000.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "recip",
+   "name": "Gas reciprocating engines",
+   "firmness": "dispatch",
+   "unit": "MW",
+   "dependency": "gas",
+   "capex_usd_per_kw": {
+    "value": 1200.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 20.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 6.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "efficiency": {
+    "value": 0.45,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "life_years": {
+    "value": 25.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": "gas",
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 12.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2000.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "aero",
+   "name": "Gas aeroderivative turbine",
+   "firmness": "dispatch",
+   "unit": "MW",
+   "dependency": "gas",
+   "capex_usd_per_kw": {
+    "value": 1400.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 15.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 5.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "efficiency": {
+    "value": 0.4,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "life_years": {
+    "value": 25.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": "gas",
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 30.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2000.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "ccgt",
+   "name": "Gas CCGT",
+   "firmness": "baseload",
+   "unit": "MW",
+   "dependency": "gas",
+   "capex_usd_per_kw": {
+    "value": 1500.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 30.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 3.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "efficiency": {
+    "value": 0.6,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "life_years": {
+    "value": 30.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": "gas",
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 54.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2000.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "ccgtccs",
+   "name": "Gas CCGT + carbon capture (90%)",
+   "firmness": "baseload",
+   "unit": "MW",
+   "dependency": "gas",
+   "capex_usd_per_kw": {
+    "value": 2900.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "NREL ATB 2024 CCS class; availability author baseline"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 60.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "NREL ATB 2024 CCS class; availability author baseline"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 8.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "NREL ATB 2024 CCS class; availability author baseline"
+   },
+   "efficiency": {
+    "value": 0.54,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "NREL ATB 2024 CCS class; availability author baseline"
+   },
+   "life_years": {
+    "value": 30.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": "gas10",
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 66.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2029.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "h2ready",
+   "name": "Hydrogen-ready turbine (gas blend now)",
+   "firmness": "dispatch",
+   "unit": "MW",
+   "dependency": "gas",
+   "capex_usd_per_kw": {
+    "value": 1600.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "vendor premium ~15% over aeroderivative, author baseline"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 18.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "vendor premium ~15% over aeroderivative, author baseline"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 5.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "vendor premium ~15% over aeroderivative, author baseline"
+   },
+   "efficiency": {
+    "value": 0.42,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "vendor premium ~15% over aeroderivative, author baseline"
+   },
+   "life_years": {
+    "value": 25.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": "gas",
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 40.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2000.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "sofc",
+   "name": "Fuel cells (SOFC)",
+   "firmness": "baseload",
+   "unit": "MW",
+   "dependency": "gas",
+   "capex_usd_per_kw": {
+    "value": 3500.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "Bloom Energy public figures, approx"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 40.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "Bloom Energy public figures, approx"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 10.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "Bloom Energy public figures, approx"
+   },
+   "efficiency": {
+    "value": 0.55,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "Bloom Energy public figures, approx"
+   },
+   "life_years": {
+    "value": 20.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": "gas",
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 12.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2000.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "genset",
+   "name": "Diesel / gas backup gensets",
+   "firmness": "backup",
+   "unit": "MW",
+   "dependency": "none",
+   "capex_usd_per_kw": {
+    "value": 800.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 10.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 20.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "efficiency": {
+    "value": 0.38,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "life_years": {
+    "value": 20.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": "diesel",
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 12.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2000.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "pv",
+   "name": "On-site solar PV",
+   "firmness": "variable",
+   "unit": "MW",
+   "dependency": "solar",
+   "capex_usd_per_kw": {
+    "value": 1100.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 18.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 0.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "efficiency": {
+    "value": 1.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "life_years": {
+    "value": 30.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": 0.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 15.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2000.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "wind",
+   "name": "On-site wind",
+   "firmness": "variable",
+   "unit": "MW",
+   "dependency": "wind",
+   "capex_usd_per_kw": {
+    "value": 1600.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 35.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 0.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "efficiency": {
+    "value": 1.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "life_years": {
+    "value": 25.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": 0.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 30.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2000.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "bess",
+   "name": "BESS storage",
+   "firmness": "storage",
+   "unit": "MWh",
+   "dependency": "none",
+   "capex_usd_per_kw": {
+    "value": 350.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 5.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 2.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "efficiency": {
+    "value": 0.87,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "life_years": {
+    "value": 15.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": 0.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 9.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2000.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "geo",
+   "name": "Geothermal (hydrothermal)",
+   "firmness": "baseload",
+   "unit": "MW",
+   "dependency": "geo3",
+   "capex_usd_per_kw": {
+    "value": 5500.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 120.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 2.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "efficiency": {
+    "value": 1.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "https://www.lazard.com/research-insights/levelized-cost-of-energyplus/"
+   },
+   "life_years": {
+    "value": 30.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": 40.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 48.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2000.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "egs",
+   "name": "Enhanced geothermal (EGS)",
+   "firmness": "baseload",
+   "unit": "MW",
+   "dependency": "geo1",
+   "capex_usd_per_kw": {
+    "value": 7500.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "Fervo public statements; DOE Liftoff; availability author baseline"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 130.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "Fervo public statements; DOE Liftoff; availability author baseline"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 2.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "Fervo public statements; DOE Liftoff; availability author baseline"
+   },
+   "efficiency": {
+    "value": 1.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "Fervo public statements; DOE Liftoff; availability author baseline"
+   },
+   "life_years": {
+    "value": 30.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": 20.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 42.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2028.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "hydro",
+   "name": "Hydro / existing-plant capacity contract",
+   "firmness": "baseload",
+   "unit": "MW",
+   "dependency": "hydro",
+   "capex_usd_per_kw": {
+    "value": 0.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "contract price = tariff × 0.8 unless overridden"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 0.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "contract price = tariff × 0.8 unless overridden"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": "hydro",
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "contract price = tariff × 0.8 unless overridden"
+   },
+   "efficiency": {
+    "value": 1.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "contract price = tariff × 0.8 unless overridden"
+   },
+   "life_years": {
+    "value": 20.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": 10.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 9.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2000.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "nuccontract",
+   "name": "Nuclear — existing plant contract / uprate",
+   "firmness": "baseload",
+   "unit": "MW",
+   "dependency": "nuc",
+   "capex_usd_per_kw": {
+    "value": 0.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "contract price = tariff × 1.0 unless overridden (2025–26 hyperscaler deals)"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 0.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "contract price = tariff × 1.0 unless overridden (2025–26 hyperscaler deals)"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": "nuc",
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "contract price = tariff × 1.0 unless overridden (2025–26 hyperscaler deals)"
+   },
+   "efficiency": {
+    "value": 1.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "contract price = tariff × 1.0 unless overridden (2025–26 hyperscaler deals)"
+   },
+   "life_years": {
+    "value": 20.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": 12.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 24.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2000.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "smr",
+   "name": "SMR (light-water, 50–300 MW)",
+   "firmness": "baseload",
+   "unit": "MW",
+   "dependency": "nuc",
+   "capex_usd_per_kw": {
+    "value": 9000.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "NREL ATB nuclear SMR moderate; availability author baseline"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 110.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "NREL ATB nuclear SMR moderate; availability author baseline"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 10.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "NREL ATB nuclear SMR moderate; availability author baseline"
+   },
+   "efficiency": {
+    "value": 1.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "NREL ATB nuclear SMR moderate; availability author baseline"
+   },
+   "life_years": {
+    "value": 40.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": 12.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 72.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2031.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "micro",
+   "name": "Portable / micro reactor (1–20 MW)",
+   "firmness": "baseload",
+   "unit": "MW",
+   "dependency": "nuc",
+   "capex_usd_per_kw": {
+    "value": 15000.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "no delivered unit; author baseline from licensing announcements"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 200.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "no delivered unit; author baseline from licensing announcements"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 15.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "no delivered unit; author baseline from licensing announcements"
+   },
+   "efficiency": {
+    "value": 1.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "no delivered unit; author baseline from licensing announcements"
+   },
+   "life_years": {
+    "value": 20.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": 12.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 30.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2029.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "biomass",
+   "name": "Biomass / waste-heat CHP",
+   "firmness": "baseload",
+   "unit": "MW",
+   "dependency": "none",
+   "capex_usd_per_kw": {
+    "value": 4000.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "IEA; feedstock at gas-price proxy"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 120.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "IEA; feedstock at gas-price proxy"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 15.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "IEA; feedstock at gas-price proxy"
+   },
+   "efficiency": {
+    "value": 0.3,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "IEA; feedstock at gas-price proxy"
+   },
+   "life_years": {
+    "value": 25.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": 50.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 24.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2000.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  },
+  {
+   "id": "h2turb",
+   "name": "Hydrogen turbine (100% H₂)",
+   "firmness": "dispatch",
+   "unit": "MW",
+   "dependency": "none",
+   "capex_usd_per_kw": {
+    "value": 1700.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "fuel at 3× gas price; author baseline"
+   },
+   "fixed_om_usd_per_kw_yr": {
+    "value": 20.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "fuel at 3× gas price; author baseline"
+   },
+   "variable_om_usd_per_mwh": {
+    "value": 5.0,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "fuel at 3× gas price; author baseline"
+   },
+   "efficiency": {
+    "value": 0.4,
+    "label": "baseline",
+    "as_of": "2025",
+    "note": "fuel at 3× gas price; author baseline"
+   },
+   "life_years": {
+    "value": 25.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "economic life, author baseline"
+   },
+   "carbon_intensity_gco2_kwh": {
+    "value": 0.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "fuel-based: 202 g/kWh_th gas, 267 diesel, divided by efficiency; 'grid' = jurisdiction value"
+   },
+   "lead_months": {
+    "value": 36.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 order-book reporting; 'queue' = jurisdiction queue"
+   },
+   "earliest_availability_year": {
+    "value": 2030.0,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "first commercial units; author baseline where >2026"
+   }
+  }
+ ]
+}
