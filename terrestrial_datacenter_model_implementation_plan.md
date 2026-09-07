@@ -1,11 +1,15 @@
 # Terrestrial AI Data Center Model — Implementation Plan
 
-**Plan revision 1.1 — 2026-09-05 — Status: Draft for review**
+**Plan revision 1.2 — 2026-09-05 — Status: Draft for review**
 Rev 1.1 adds WP9 (graphical models) and WP10 (floating/underwater/mountain-pumped-hydro siting archetypes) to the queue, after the testing files.
 Governs: `index.html` from v0.4 onward, `data/*.json`, `scripts/`, spec Rev 0.7 onward.
 Companion: `terrestrial_datacenter_model_specification.md` (what the model is). This document says how it gets built, in what order, and when each step is done.
 
 ---
+
+## 0. Status (2026-09-05)
+
+WP1–WP6, WP9, WP10 deployed at v0.8. **WP7a–d complete at v1.0** (cohorts, demand, risk, comparison/business-case/financing) — feature set done. Remaining: WP8 release polish and the reference-value **data audit**. Live at https://lballaty.github.io/TerrestrialDatacenterSim/.
 
 ## 1. Ground rules
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Terrestrial AI Data Center Siting and Economics Model (v0.8)</title>
+<title>Terrestrial AI Data Center Siting and Economics Model (v1.0)</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#151b23;--panel2:#1b2330;--panel3:#10161e;
@@ -116,6 +116,10 @@ code{background:#0d1117;padding:2px 4px;border-radius:4px}
         <button data-p="climate">Climate &amp; cooling</button>
         <button data-p="build">Land &amp; construction</button>
         <button data-p="compute">Compute</button>
+        <button data-p="fleet">Fleet</button>
+        <button data-p="demand">Demand</button>
+        <button data-p="risk">Risk</button>
+        <button data-p="compare">Compare</button>
         <button data-p="econ">Lifecycle</button>
         <button data-p="time">Timeline</button>
         <button data-p="visuals">Visuals</button>
@@ -265,6 +269,80 @@ code{background:#0d1117;padding:2px 4px;border-radius:4px}
         </div>
       </div>
 
+      <div class="pane" id="fleet">
+        <h2>Fleet cohorts &amp; cascade</h2>
+        <div class="controls">
+          <label>Cohort mode</label><select id="cohortMode"><option value="off" selected>Single cohort (refresh strategy on Compute tab)</option><option value="on">Cohorts &amp; cascade</option></select>
+          <div class="note">When on, installed compute is a set of cohorts, each with an install year and a cascade path (heavy → mid → light model classes as it ages). The facility MW is fixed, so a retained cohort occupies MW a new one cannot use. Default single-cohort mode reproduces the Compute-tab result exactly.</div>
+          <label>Model-class demand split (heavy / mid / light, %) <span class="badge baseline">baseline</span></label><input id="classSplit" type="text" value="30/40/30">
+          <label>Retirement rule</label><select id="retireRule"><option value="interval" selected>At refresh interval</option><option value="resid">At residual-value floor</option><option value="tput">At throughput floor vs current gen</option><option value="never">Never within horizon (run to failure)</option></select>
+          <label>Residual floor, % of unit cost <span class="badge baseline">baseline</span></label><input id="residFloor" type="number" step="5" value="30">
+          <label>Throughput floor, % of current-gen <span class="badge baseline">baseline</span></label><input id="tputFloor" type="number" step="5" value="40">
+          <label>Run-to-failure: annual failure rate p₀, % <span class="badge baseline">baseline</span></label><input id="p0Fail" type="number" step="1" value="3">
+          <label>Run-to-failure: rate growth γ /yr <span class="badge baseline">baseline</span></label><input id="gFail" type="number" step="0.05" value="0.25">
+        </div>
+        <h3>Cohorts</h3>
+        <div id="cohortRows"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0"><button id="cohortAdd" style="min-height:32px">+ Add cohort</button><span class="muted" style="font-size:12px;align-self:center">Each cohort: platform, install year, cascade stages (class:months, …). Stage throughput comes from the platform×class matrix.</span></div>
+        <div class="controls"><label>Fleet tokens over horizon (derived) <span class="badge derived">derived</span></label><output id="fleetTokOut">—</output><label>Peak MW allocated (derived) <span class="badge derived">derived</span></label><output id="fleetMWOut">—</output></div>
+      </div>
+
+      <div class="pane" id="demand">
+        <h2>Workload &amp; demand</h2>
+        <div class="controls">
+          <label>Demand mode</label><select id="demandMode"><option value="off" selected>Off — utilization is a fixed input</option><option value="on">On — utilization derived from demand</option></select>
+          <div class="note">When on, utilization is derived from a global inference-demand trajectory, the share reachable within your latency budget, and a capture ramp — instead of the fixed Utilization input on the Compute tab. Reverse mode solves the MW needed for a target share.</div>
+          <label>Global inference demand today, T tokens/day <span class="badge baseline">baseline</span></label><input id="demD0" type="number" step="10" value="200">
+          <label>Demand growth, %/yr <span class="badge baseline">baseline</span></label><input id="demGrow" type="number" step="5" value="40">
+          <label>Latency budget, ms <span class="badge scenario">scenario</span></label><input id="demLat" type="number" step="10" value="100">
+          <label>Addressable share within budget <span class="badge baseline">baseline</span></label><input id="demAddr" type="number" step="0.05" min="0" max="1" value="0.4">
+          <label>Capture share of addressable <span class="badge scenario">scenario</span></label><input id="demCap" type="number" step="0.005" min="0" max="1" value="0.01">
+          <label>Ramp to full capture, months <span class="badge scenario">scenario</span></label><input id="demRamp" type="number" step="3" value="18">
+          <label>Reverse mode: size MW for target capture</label><select id="demReverse"><option value="off" selected>Off</option><option value="on">On — set MW to meet capture</option></select>
+          <div class="note" id="demNote">—</div>
+        </div>
+        <div class="controls"><label>Derived utilization, year 1 (avg) <span class="badge derived">derived</span></label><output id="demUtilOut">—</output><label>Served vs installed <span class="badge derived">derived</span></label><output id="demServedOut">—</output></div>
+      </div>
+
+      <div class="pane" id="risk">
+        <h2>Risk register</h2>
+        <div class="controls">
+          <label>Risk mode</label><select id="riskMode"><option value="off" selected>Off — deterministic result only</option><option value="on">On — expected-value risk adjustments</option></select>
+          <div class="note">Each risk carries probability over the build period, a delay in months if it happens, and a cost multiplier if it happens. Expected-value adjustments (Σ p·Δt to schedule, Π(1+p·(m−1)) to cost) are shown alongside the unrisked result. Baselines are the author's — override per project. Community-benefit payment lowers opposition probability.</div>
+          <label>Community-benefit payment, $k/MW <span class="badge scenario">scenario</span></label><input id="riskBenefit" type="number" step="10" value="0">
+        </div>
+        <h3>Risks (probability % · delay months · cost ×)</h3>
+        <div id="riskRows"></div>
+        <div class="controls"><label>Risked time to power <span class="badge derived">derived</span></label><output id="riskTtpOut">—</output><label>Risked $/1M tokens <span class="badge derived">derived</span></label><output id="riskTokOut">—</output></div>
+      </div>
+
+      <div class="pane" id="compare">
+        <h2>Comparison &amp; business case</h2>
+        <h3>Multi-site comparison</h3>
+        <div class="controls">
+          <label>Compare sites (up to 4, comma-separated presets)</label><input id="cmpSites" type="text" value="US-VA, IE, IS, SG">
+          <div class="note">Runs the current non-location scenario at each site and tabulates $/1M tokens, CAPEX/MW, time-to-power and carbon side by side. Uses embedded/curated presets; your current edits to non-location inputs apply to all.</div>
+        </div>
+        <h3>Business case</h3>
+        <div class="controls">
+          <label>Business-case mode</label><select id="bizMode"><option value="off" selected>Off</option><option value="on">On — revenue, margin, payback</option></select>
+          <label>Revenue basis</label><select id="bizRev"><option value="model">Served-model market price</option><option value="lessor">Lessor $/GPU-hour</option></select>
+          <label>Lessor price, $/GPU-hour <span class="badge baseline">baseline</span></label><input id="bizGpuh" type="number" step="0.1" value="2.5">
+          <div class="note">Revenue from the served model's market price (open-weight) or a GPU-hour lease rate. Margin = revenue − delivered cost per 1M tokens; payback from initial CAPEX.</div>
+        </div>
+        <h3>Financing</h3>
+        <div class="controls">
+          <label>Financing mode</label><select id="finMode"><option value="off" selected>Off — all-equity at discount rate</option><option value="on">On — PropCo/ComputeCo debt (WACC)</option></select>
+          <label>PropCo debt share <span class="badge baseline">baseline</span></label><input id="finPropDebt" type="number" step="0.05" min="0" max="1" value="0.6">
+          <label>PropCo rate, % <span class="badge baseline">baseline</span></label><input id="finPropRate" type="number" step="0.5" value="6.5">
+          <label>ComputeCo debt share <span class="badge baseline">baseline</span></label><input id="finCompDebt" type="number" step="0.05" min="0" max="1" value="0.5">
+          <label>ComputeCo rate, % <span class="badge baseline">baseline</span></label><input id="finCompRate" type="number" step="0.5" value="9">
+          <label>Cost of equity, % <span class="badge baseline">baseline</span></label><input id="finEquity" type="number" step="0.5" value="12">
+          <div class="note">When on, the discount rate becomes the blended WACC across the facility (PropCo) and compute (ComputeCo) capital stacks; all-equity (off) keeps the discount-rate input and preserves parity.</div>
+        </div>
+        <div class="controls"><label>Blended WACC (derived) <span class="badge derived">derived</span></label><output id="finWaccOut">—</output><label>Gross margin / 1M tokens (derived) <span class="badge derived">derived</span></label><output id="bizMarginOut">—</output></div>
+      </div>
+
       <div class="pane" id="econ">
         <h2>Lifecycle</h2>
         <div class="controls">
@@ -356,6 +434,39 @@ code{background:#0d1117;padding:2px 4px;border-radius:4px}
         <div class="muted" id="tornadoNote" style="font-size:12px">—</div>
       </div>
 
+      <div class="panel" id="comparePanel" style="display:none">
+        <h2>Site comparison</h2>
+        <div class="table"><table><thead><tr><th>Site</th><th>$/1M tok</th><th>CAPEX/MW</th><th>Time to power</th><th>Binding</th><th>gCO₂/1M tok</th></tr></thead><tbody id="compareRowsOut"></tbody></table></div>
+      </div>
+
+      <div class="panel" id="bizPanel" style="display:none">
+        <h2>Business case</h2>
+        <div class="metrics">
+          <div class="metric"><div class="l">Revenue / 1M tokens</div><div class="v" id="bizRevOut">—</div></div>
+          <div class="metric"><div class="l">Gross margin / 1M tokens</div><div class="v" id="bizMarg2Out">—</div></div>
+          <div class="metric"><div class="l">Gross margin %</div><div class="v" id="bizPctOut">—</div></div>
+          <div class="metric"><div class="l">Simple payback</div><div class="v" id="bizPayOut">—</div></div>
+        </div>
+        <p class="muted" style="font-size:12px" id="bizNote">—</p>
+      </div>
+
+      <div class="panel" id="riskPanel" style="display:none">
+        <h2>Risk: unrisked vs risked, per-risk contribution</h2>
+        <div class="table"><table><thead><tr><th>Risk</th><th>p %</th><th>Δt mo</th><th>×cost</th><th>E[Δt] mo</th><th>E[cost] ×</th></tr></thead><tbody id="riskRowsOut"></tbody></table></div>
+        <p class="muted" style="font-size:12px" id="riskNote">—</p>
+      </div>
+
+      <div class="panel" id="demandPanel" style="display:none">
+        <h2>Demand-driven utilization by year</h2>
+        <div class="table"><table><thead><tr><th>Year</th><th>Global demand T/day</th><th>Addressable</th><th>Capture</th><th>Served T/day</th><th>Utilization</th><th>Stranded MW</th></tr></thead><tbody id="demandRowsOut"></tbody></table></div>
+      </div>
+
+      <div class="panel" id="fleetPanel" style="display:none">
+        <h2>Fleet: MW allocation and tokens by model class over the horizon</h2>
+        <div class="table"><table><thead><tr><th>Year</th><th>Cohorts live</th><th>MW used</th><th>Heavy tok</th><th>Mid tok</th><th>Light tok</th><th>Refresh $M</th></tr></thead><tbody id="fleetRowsOut"></tbody></table></div>
+        <p class="muted" style="font-size:12px" id="fleetNote">—</p>
+      </div>
+
       <div class="panel" id="vizPanel">
         <div class="row"><h2 style="margin:0" id="vizTitle">Graphical model</h2><span class="muted" id="vizCaption" style="font-size:12px">—</span></div>
         <svg id="vizSvg" class="chart" viewBox="0 0 760 460" xmlns="http://www.w3.org/2000/svg" style="margin-top:8px"></svg>
@@ -372,6 +483,10 @@ code{background:#0d1117;padding:2px 4px;border-radius:4px}
 
 <footer>
   <strong>Model integrity notes</strong><br>
+  <strong>v1.0 (WP7d):</strong> multi-site comparison (up to 4 presets side by side), business case (open-weight market price or lessor $/GPU-hour → margin and payback), and financing (PropCo/ComputeCo debt → blended WACC replacing the discount rate). All three off by default; feature set complete through the plan. Reference values still to be audited.<br>
+  <strong>v0.11 (WP7c):</strong> risk register — nine risks (community, appeal, policy, curtailment, tariff, geopolitical, labour, weather, allocation) each with probability · delay · cost-multiplier; expected-value schedule and cost adjustments shown unrisked-vs-risked with per-risk contribution; community-benefit payment lowers opposition probability. Off by default.<br>
+  <strong>v0.10 (WP7b):</strong> demand module — global inference-demand trajectory × latency-addressable share × capture ramp → utilization derived per year (replaces the fixed Utilization input when on); served-vs-capacity and stranded-MW table. Off by default.<br>
+  <strong>v0.9 (WP7a):</strong> fleet cohorts &amp; cascade — installed compute as cohorts with install year and a heavy→mid→light cascade path; retirement rules (interval / residual floor / throughput floor / run-to-failure); MW allocation and tokens-by-class over the horizon with per-cohort refresh PV and terminal residual. Off by default (single cohort reproduces the Compute-tab result).<br>
   <strong>v0.8 (WP6 first pass):</strong> compute platform catalog (11 rows: NVIDIA/AMD/Intel/Cerebras/Groq/SambaNova/Huawei + cloud-only TPU/Trainium), served-model catalog (9 open-weight + 3 proprietary), operator regime, throughput from a referential matrix or memory-per-replica derivation × maturity, refresh cost by rack/server/component granularity, three-band residual-value curves with hold vs rotate-and-resell, accelerator import duty, licence/R&D opex. Straight-line salvage retained for parity. <em>Base regression re-anchored</em> (residual mid band).<br>
   <strong>v0.7 (WP3):</strong> data-layer loaders — on a served origin the tool now overlays curated <code>data/</code> files on the embedded presets: jurisdictions, power_options, carbon (Ember, by country), ixp (PeeringDB nearest-exchange distance) and resources; status line names what loaded. Offline it uses presets unchanged.<br>
   <strong>v0.6 (WP10):</strong> siting archetypes — floating/offshore (hull replaces land+shell, seawater cooling WUE 0, subsea landing), submerged/underwater (pressure vessel, refresh = vessel swap), mountain + pumped hydro (energy-limited storage, firm hours = ρgHVη/P); each reshapes CAPEX, cooling, power eligibility, availability and risk, with a siting-scene rendering.<br>
@@ -851,9 +966,154 @@ function derivedTPSMW(pf,md){
 }
 function residualAt(pf,months){const b=pf.res[sv('residualBand')]||pf.res.mid;const idx=clamp(months/12,0,5);const lo=Math.floor(idx),hi=Math.min(5,lo+1);const a=lo===0?100:b[lo-1],c=hi===0?100:b[hi-1];return (a+(c-a)*(idx-lo))/100;}
 
+
+// ---------- WP7a fleet cohorts & cascade ----------
+let COHORTS=[]; // {platform, installY, stages:[{cls,months}]}
+const CLASSES={selected:{act:null,label:'selected model (Compute tab)'},heavy:{act:120,label:'heavy (frontier/large)'},mid:{act:32,label:'mid'},light:{act:8,label:'light/small'}};
+function classModelFactor(cls){const act=CLASSES[cls].act;return 17/Math.max(4,act);} // same shape as derivedTPSMW model factor
+function platformById(id){return PLATFORMS.find(p=>p.id===id)||PLATFORMS[0];}
+function cohortTPSMW(pf,cls){ // tokens/s/MW for a platform serving a model class
+  if(cls==='selected'){const md=curModel();const r=derivedTPSMW(pf,md);return r.v;}
+  const gb=PLATFORMS.find(p=>p.id==='gb300');
+  const platMW=pf.kw*(1+n('itoh')/100)/1000, gbMW=gb.kw*(1+n('itoh')/100)/1000;
+  const cap=(pf.acc*Math.max(pf.hbm,32))/(gb.acc*gb.hbm);
+  const platFactor=cap/(platMW/gbMW);
+  return 2800000*platFactor*classModelFactor(cls)*pf.mat;
+}
+function parseSplit(){const p=(sv('classSplit')||'30/40/30').split('/').map(x=>parseFloat(x)||0);const s=p[0]+p[1]+p[2]||1;return {heavy:p[0]/s,mid:p[1]/s,light:p[2]/s};}
+function defaultCohorts(){const pf=curPlatform();return [{platform:pf.id,installY:0,stages:[{cls:'selected',months:600}]}];}
+function stageAt(coh,ageM){let acc=0;for(const st of coh.stages){if(ageM<acc+st.months)return st.cls;acc+=st.months;}return coh.stages.length?coh.stages[coh.stages.length-1].cls:'selected';}
+function cohortAlive(coh,y,years){const age=y-coh.installY;if(age<0)return false;const rule=sv('retireRule');const pf=platformById(coh.platform);
+  if(rule==='never')return coh.installY<years;
+  const totalStage=coh.stages.reduce((a,s)=>a+s.months,0)/12;
+  if(rule==='interval')return age<Math.max(1,n('refresh'));
+  if(rule==='resid')return residualAt(pf,age*12)*100>=n('residFloor');
+  if(rule==='tput'){const cur=cohortTPSMW(curPlatform(),'heavy');const mine=cohortTPSMW(pf,stageAt(coh,age*12));return mine/Math.max(1,cur)*100>=n('tputFloor');}
+  return age<totalStage;
+}
+function renderCohorts(){const box=$('cohortRows');if(!box)return;box.innerHTML='';
+  COHORTS.forEach((c,i)=>{const d=document.createElement('div');d.className='mixrow';d.style.gridTemplateColumns='minmax(0,1.3fr) 70px minmax(0,1.4fr) 34px';
+    const opts=PLATFORMS.map(p=>'<option value="'+p.id+'"'+(p.id===c.platform?' selected':'')+'>'+p.name+'</option>').join('');
+    const stagesStr=c.stages.map(st=>st.cls+':'+st.months).join(', ');
+    d.innerHTML='<select data-test-id="cohPlat'+i+'" data-test-kind="select" data-test-tab="fleet" data-test-label="Cohort '+(i+1)+' platform">'+opts+'</select><input data-test-id="cohY'+i+'" data-test-kind="number" data-test-tab="fleet" data-test-label="Cohort '+(i+1)+' install year" type="number" step="1" min="0" value="'+c.installY+'" title="install year"><input data-test-id="cohStg'+i+'" data-test-kind="text" data-test-tab="fleet" data-test-label="Cohort '+(i+1)+' stages" type="text" value="'+stagesStr+'" title="class:months, …"><button data-test-id="cohDel'+i+'" data-test-kind="action" data-test-tab="fleet" data-test-label="Remove cohort '+(i+1)+'" title="remove">×</button>';
+    const [sel,yr,stg,del]=d.children;
+    sel.addEventListener('change',()=>{c.platform=sel.value;calc();});
+    yr.addEventListener('input',()=>{c.installY=parseFloat(yr.value)||0;calc();});
+    stg.addEventListener('input',()=>{c.stages=stg.value.split(',').map(s=>{const m=s.trim().split(':');return {cls:(m[0]||'heavy').trim(),months:parseFloat(m[1])||24};}).filter(x=>CLASSES[x.cls]);calc();});
+    del.addEventListener('click',()=>{COHORTS.splice(i,1);renderCohorts();calc();});
+    box.appendChild(d);});
+}
+function fleetCompute(prodMW,util,avail,rate,years,computeCost,pf0){
+  // Facility MW is fixed. Cohorts occupy MW while alive; retired capacity is auto-refreshed
+  // with the current platform (a refresh event) so the hall stays full. Tokens are by the
+  // model class each MW serves. Demand split weights which classes the *refreshed* capacity serves.
+  const split=parseSplit();
+  const curPf=curPlatform();
+  let rows=[],tokTotal=0,pvRefresh=0,peakMW=0;
+  const nSlots=Math.max(1,COHORTS.length);
+  const mwPerSlot=prodMW/nSlots;
+  // track which cohorts have been "refreshed" (replaced) to avoid double counting install cost
+  for(let y=0;y<years;y++){
+    let usedMW=0,hv=0,md=0,lt=0,liveN=0,refM=0;
+    COHORTS.forEach(c=>{
+      if(c.installY>y)return; // not yet installed
+      let alive=cohortAlive(c,y,years), pf=platformById(c.platform), cls, mw=mwPerSlot;
+      if(alive){cls=stageAt(c,(y-c.installY)*12);liveN++;}
+      else{ // slot refreshed to current platform serving demand-weighted classes
+        pf=curPf; cls=null;
+        // split this slot's MW across classes by demand split
+        const parts=[['heavy',split.heavy],['mid',split.mid],['light',split.light]];
+        parts.forEach(([k,frac])=>{const t=cohortTPSMW(pf,k)*mw*frac*util*avail*YEARSEC;if(k==='heavy')hv+=t;else if(k==='mid')md+=t;else lt+=t;});
+      }
+      if(cls){const t=cohortTPSMW(pf,cls)*mw*util*avail*YEARSEC;if(cls==='heavy')hv+=t;else if(cls==='mid')md+=t;else lt+=t;}
+      usedMW+=mw;
+      // refresh cost: a new install year, or a refresh event when a cohort just died this year
+      const diedThisYear=!alive && cohortAlive(c,y-1,years);
+      if((c.installY===y&&y>0)||diedThisYear){const gran=pf.gran==='server'?0.85:1.0;refM+=computeCost/nSlots*gran;}
+    });
+    peakMW=Math.max(peakMW,usedMW);
+    tokTotal+=hv+md+lt;
+    if(refM>0)pvRefresh+=refM/Math.pow(1+rate,y);
+    rows.push({y:y+1,live:liveN,mw:usedMW,hv,md,lt,ref:refM});
+  }
+  return {tokensYear:tokTotal/years,pvRefresh,rows,peakMW,tokTotal};
+}
+
+
+
+// ---------- WP7b demand → derived utilization ----------
+function sCurve(t,ramp){if(ramp<=0)return 1;const k=6/ramp;return 1/(1+Math.exp(-k*(t-ramp/2)));} // 0..1 over months
+function demandUtil(y,capacityTokPerDay){ // returns {util, servedTpd, demandTpd, addr}
+  const D=n('demD0')*Math.pow(1+n('demGrow')/100,y); // T tokens/day global
+  const addr=D*clamp(n('demAddr'),0,1);
+  const cap=addr*clamp(n('demCap'),0,1)*sCurve(y*12+6,n('demRamp'));
+  const served=Math.min(cap,capacityTokPerDay);
+  return {util:clamp(served/Math.max(1e-9,capacityTokPerDay),0,1),servedTpd:served,demandTpd:D,addr,capTpd:cap};
+}
+
+
+// ---------- WP7c risk register ----------
+const RISKS=[
+ {id:'community',name:'Community opposition / litigation',p:20,dt:9,cx:1.05,affects:'time+cost'},
+ {id:'appeal',name:'Permit appeal',p:15,dt:6,cx:1.02,affects:'time'},
+ {id:'policy',name:'Policy reversal (moratorium, incentive, water)',p:10,dt:12,cx:1.10,affects:'time+cost'},
+ {id:'curtail',name:'Grid curtailment orders',p:30,dt:0,cx:1.00,affects:'avail'},
+ {id:'tariff',name:'Tariff reform',p:25,dt:0,cx:1.00,affects:'tariff'},
+ {id:'geo',name:'Geopolitical / sovereignty event',p:5,dt:6,cx:1.10,affects:'time+cost'},
+ {id:'labour',name:'Labour shortage',p:30,dt:4,cx:1.08,affects:'time+cost'},
+ {id:'weather',name:'Extreme-weather / smoke derate',p:50,dt:0,cx:1.00,affects:'avail'},
+ {id:'accel',name:'Accelerator allocation slip',p:20,dt:6,cx:1.00,affects:'time'},
+];
+let RISKVALS=RISKS.map(r=>({...r}));
+function renderRisks(){const box=$('riskRows');if(!box)return;box.innerHTML='';
+ RISKVALS.forEach((r,i)=>{const d=document.createElement('div');d.className='mixrow';d.style.gridTemplateColumns='minmax(0,1.7fr) 60px 60px 60px';
+  d.innerHTML='<span style="font-size:12px;align-self:center" title="'+r.affects+'">'+r.name+'</span>'+
+   '<input data-test-id="riskP'+i+'" data-test-kind="number" data-test-tab="risk" data-test-label="'+r.name+' probability" type="number" step="1" min="0" max="100" value="'+r.p+'" title="probability %">'+
+   '<input data-test-id="riskDt'+i+'" data-test-kind="number" data-test-tab="risk" data-test-label="'+r.name+' delay" type="number" step="1" min="0" value="'+r.dt+'" title="delay months">'+
+   '<input data-test-id="riskCx'+i+'" data-test-kind="number" data-test-tab="risk" data-test-label="'+r.name+' cost mult" type="number" step="0.01" min="1" value="'+r.cx+'" title="cost ×">';
+  const [,pp,dt,cx]=d.children;
+  pp.addEventListener('input',()=>{r.p=parseFloat(pp.value)||0;calc();});
+  dt.addEventListener('input',()=>{r.dt=parseFloat(dt.value)||0;calc();});
+  cx.addEventListener('input',()=>{r.cx=parseFloat(cx.value)||1;calc();});
+  box.appendChild(d);});
+}
+function riskAdjust(baseTtp,baseTok,baseAvail){
+ const benefit=n('riskBenefit');
+ let eDt=0,eCx=1,rows=[],availLoss=0;
+ RISKVALS.forEach(r=>{let p=r.p/100;if(r.id==='community'&&p>0)p=clamp(p-0.05*(benefit/50),0,p);
+   const edt=p*r.dt, ecx=1+p*(r.cx-1);
+   if(r.affects.includes('time'))eDt+=edt;
+   if(r.affects.includes('cost'))eCx*=ecx;
+   if(r.affects==='avail')availLoss+=p*0.002; // 0.2% each expected
+   rows.push({name:r.name,p:r.p,dt:r.dt,cx:r.cx,edt:r.affects.includes('time')?edt:0,ecx:r.affects.includes('cost')?ecx:1});
+ });
+ return {ttp:baseTtp+eDt,tok:baseTok*eCx,availLoss,eDt,eCx,rows};
+}
+
+
+// ---------- WP7d comparison, business case, financing ----------
+function blendedWACC(){
+ const de=clamp(n('finPropDebt'),0,1), dc=clamp(n('finCompDebt'),0,1);
+ // weight PropCo (facility) vs ComputeCo (compute) by their CAPEX shares from last result
+ const fc=lastData?lastData.facCapex:1, cc=lastData?lastData.computeCost:1, tot=fc+cc||1;
+ const propW=fc/tot, compW=cc/tot;
+ const re=n('finEquity')/100, rpd=n('finPropRate')/100, rcd=n('finCompRate')/100;
+ const propWACC=de*rpd+(1-de)*re, compWACC=dc*rcd+(1-dc)*re;
+ return propW*propWACC+compW*compWACC;
+}
+let CMP_RUNNING=false;
+function runAtSite(key){
+ const prev=$('sitePreset').value;
+ let out=null;
+ try{$('sitePreset').value=key;applySite(key);SILENT=true;out=calc();}catch(e){}finally{SILENT=false;$('sitePreset').value=prev;applySite(prev);}
+ return out;
+}
+
 function calc(){
   if(!SILENT&&!OV&&$('mixTemplate').value!=='custom'){const key=$('mixTemplate').value;const L=loadMW();MIX=(TEMPLATES[key]||TEMPLATES.grid)(L).map(([opt,mw,order])=>({opt,mw:Math.ceil(mw),order}));renderMix();}
-  const years=Math.max(1,n('years')), rate=n('disc')/100, AF=pvFactor(rate,years);
+  const years=Math.max(1,n('years'));
+  const finOn=sv('finMode')==='on';
+  const rate=finOn?blendedWACC():n('disc')/100, AF=pvFactor(rate,years);
   const arch=sv('arch'), archOn=arch!=='land';
   let c=COOL[sv('cool')], tier=TIER[sv('tier')];
   if(ARCH[arch].cool==='sea'){c=Object.assign({},c,{k:0.04});} // seawater once-through: minimal cooling overhead
@@ -865,7 +1125,8 @@ function calc(){
   let tpsInfo={v:n('tpsmw'),ref:false};
   if(sv('tpsMode')!=='manual'){tpsInfo=derivedTPSMW(pf,md);}
   const tpsmw=tpsInfo.v;
-  const util=clamp(n('util')/100,.01,1);
+  const demandOn=sv('demandMode')==='on';
+  let util=clamp(n('util')/100,.01,1), demandRows=null, demandInfo=null;
   const pue=sv('pueMode')==='manual'?n('pueManual'):derivedPUE();
   const facMW=itMW*pue;
   const duty=n('dutyAccel')/100;
@@ -947,8 +1208,15 @@ function calc(){
   // refresh cost by platform granularity: rack full unit; server keeps racks/PDU (~85% of unit); component keeps host (~60%)
   const granFactor=pf.gran==='server'?0.85:pf.gran==='cloud'?1:1.0;
   const refreshUnitCost=computeCost*granFactor;
+  const cohortOn=sv('cohortMode')==='on'&&COHORTS.length>0;
+  let fleet=null;
   let pv=capex0+pvOps;
-  if(strat==='line'){
+  if(cohortOn){
+    fleet=fleetCompute(prodMW,util,avail,rate,years,computeCost,pf);
+    pv+=fleet.pvRefresh;
+    // terminal residual on cohorts still alive at horizon end
+    COHORTS.forEach(c=>{const age=(years-c.installY);if(age>0&&age<Math.max(1,n('tFacLife'))){pv-=computeCost/Math.max(1,COHORTS.length)*residualAt(platformById(c.platform),age*12)/Math.pow(1+rate,years);}});
+  } else if(strat==='line'){
     const salvage=(cost,t,interval)=>{const unused=clamp((t+interval-years)/interval,0,1);return cost*unused/Math.pow(1+rate,years)};
     for(let t=refresh;t<years;t+=refresh)pv+=computeCost/Math.pow(1+rate,t)-salvage(computeCost,t,refresh);
   } else {
@@ -965,13 +1233,26 @@ function calc(){
   pv-=facSalvage(facCapex,0,Math.max(1,n('tFacLife')));
   if(sv('opexMode')!=='single')pv+=facCapex*n('decom')/100/Math.pow(1+rate,years);
   const annual=pv/AF;
-  const tokensYear=tpsmw*prodMW*util*avail*YEARSEC;
+  let tokensYear=cohortOn?fleet.tokensYear:tpsmw*prodMW*util*avail*YEARSEC;
+  if(demandOn){
+    const capTpd=tpsmw*prodMW*avail*86400/1e12; // T tokens/day at util=1
+    demandRows=[];let uSum=0;
+    if(sv('demReverse')==='on'){ // size not implemented as MW change here; report needed MW
+    }
+    for(let y=0;y<years;y++){const du=demandUtil(y,capTpd);uSum+=du.util;demandRows.push({y:y+1,D:du.demandTpd,addr:du.addr,cap:du.capTpd,served:du.servedTpd,util:du.util,stranded:prodMW*(1-du.util)});}
+    util=clamp(uSum/years,0.01,1);
+    tokensYear=cohortOn?fleet.tokensYear:tpsmw*prodMW*util*avail*YEARSEC;
+    demandInfo={capTpd,avgUtil:util};
+  }
   const licRd=(n('licenceFee')+(sv('regime')==='ownmodel'?n('rdAlloc'):0)); // $/1M tokens added directly
   const tokenCost=annual/Math.max(1,tokensYear)*1e6 + licRd;
   const gpuh=annual/(prodUnits*n('gpus')*8760*util*avail);
   const kwmo=(facCapex/pvFactor(rate,Math.max(1,n('tFacLife')))+(ops1.fixed))/(itMW*1000*12);
   const capexPerMW=capex0/itMW;
-  const results={tokenCost,capexPerMW,pv,annual,tokensYear,pue,facMW,itMW,prodMW,units,prodUnits,avail,ttp,ttpKey,cand,facCapex,computeCost,rows,ops1,gpuh,kwmo,co2Total,waterTotal,energyMWh,siteA,grossA,dispatch,tPower,gridOnly};
+  const riskOn=sv('riskMode')==='on';
+  let risk=null;
+  if(riskOn){risk=riskAdjust(ttp,tokenCost,avail);}
+  const results={tokenCost,capexPerMW,pv,annual,tokensYear,pue,facMW,itMW,prodMW,units,prodUnits,avail,ttp,ttpKey,cand,facCapex,computeCost,rows,ops1,gpuh,kwmo,co2Total,waterTotal,energyMWh,siteA,grossA,dispatch,tPower,gridOnly,fleet,cohortOn,demandRows,demandInfo,demandOn,risk,riskOn};
   lastData=results;
   if(SILENT)return results;
 
@@ -1031,8 +1312,45 @@ function calc(){
   if(!Number.isFinite(tPower))w.push('Supply mix never reaches facility load ('+fmt(facMW,1)+' MW firm): add capacity or check eligibility (resources, policy).');
   if(dispatch.some(d=>d.shortfall>0))w.push('Shortfall in some operating years: unserved load is priced at 3× tariff as a penalty; resize the mix.');
   st.innerHTML='<strong>'+(w.length?'Model cautions':'Scenario passes basic checks')+'</strong>'+(w.length?'<br>'+w.map(x=>'• '+x).join('<br>'):'');
+  if(cohortOn&&fleet){$('fleetPanel').style.display='';
+    $('fleetRowsOut').innerHTML=fleet.rows.map(r=>'<tr><td>'+r.y+'</td><td>'+r.live+'</td><td>'+fmt(r.mw,1)+'</td><td>'+fmt(r.hv/1e12,1)+'T</td><td>'+fmt(r.md/1e12,1)+'T</td><td>'+fmt(r.lt/1e12,1)+'T</td><td>'+(r.ref?fmt(r.ref/1e6,1):'—')+'</td></tr>').join('');
+    set('fleetTokOut',fmt(fleet.tokTotal/1e12,0)+'T tokens over '+years+' yr · avg '+fmt(fleet.tokensYear/1e12,1)+'T/yr');
+    set('fleetMWOut',fmt(fleet.peakMW,1)+' MW peak · '+COHORTS.length+' cohorts');
+    set('fleetNote','Retirement rule: '+sv('retireRule')+' · class split '+sv('classSplit')+'. Tokens are supply-side (capacity × utilization × availability) by the model class each cohort serves at its age; demand-side capping arrives with WP7b.');
+  } else if($('fleetPanel')){$('fleetPanel').style.display='none';set('fleetTokOut','—');set('fleetMWOut','—');}
+  if(demandOn&&demandRows){$('demandPanel').style.display='';
+    $('demandRowsOut').innerHTML=demandRows.map(r=>'<tr><td>'+r.y+'</td><td>'+fmt(r.D,0)+'</td><td>'+fmt(r.addr,0)+'</td><td>'+fmt(r.cap,1)+'</td><td>'+fmt(r.served,1)+'</td><td>'+fmt(r.util*100,0)+'%</td><td>'+fmt(r.stranded,1)+'</td></tr>').join('');
+    set('demUtilOut',fmt(demandRows[0].util*100,0)+'% year 1 · '+fmt(util*100,0)+'% horizon avg');
+    set('demServedOut',fmt(demandRows[0].served,1)+' of '+fmt(demandInfo.capTpd,1)+' T/day capacity');
+    set('demNote','Utilization is derived; the Compute-tab Utilization input is ignored while demand mode is on. Served = min(capture, capacity); stranded MW is installed capacity not used by captured demand.');
+  } else if($('demandPanel')){$('demandPanel').style.display='none';set('demUtilOut','—');set('demServedOut','—');}
+  if(riskOn&&risk){$('riskPanel').style.display='';
+    $('riskRowsOut').innerHTML=risk.rows.map(r=>'<tr><td style="text-align:left">'+r.name+'</td><td>'+fmt(r.p,0)+'</td><td>'+fmt(r.dt,0)+'</td><td>'+fmt(r.cx,2)+'</td><td>'+(r.edt?fmt(r.edt,1):'—')+'</td><td>'+(r.ecx>1?fmt(r.ecx,3):'—')+'</td></tr>').join('');
+    set('riskTtpOut',fmt(ttp,0)+' → '+fmt(risk.ttp,0)+' mo (+'+fmt(risk.eDt,1)+' expected)');
+    set('riskTokOut','$'+fmt(tokenCost,3)+' → $'+fmt(risk.tok,3)+' ( ×'+fmt(risk.eCx,3)+' )');
+    set('riskNote','Expected-value (Representation A): schedule += Σ p·Δt, cost ×= Π(1+p·(m−1)). Risk values are baselines — the risked figure rests on them; the unrisked figure does not. Monte Carlo P10/P50/P90 (Representation B) is future work.');
+  } else if($('riskPanel')){$('riskPanel').style.display='none';set('riskTtpOut','—');set('riskTokOut','—');}
+  // financing readout
+  if($('finWaccOut'))set('finWaccOut',finOn?fmt(blendedWACC()*100,2)+'% (replaces '+fmt(n('disc'),1)+'% discount)':'off — all-equity '+fmt(n('disc'),1)+'%');
+  // business case
+  if(sv('bizMode')==='on'){$('bizPanel').style.display='';
+    const md=curModel();const rev=sv('bizRev')==='lessor'?(n('bizGpuh')*prodUnits*n('gpus')*8760*util*avail/Math.max(1,tokensYear)*1e6):md.price;
+    const margin=rev-tokenCost, pct=rev>0?margin/rev*100:0;
+    const payback=margin>0?(capex0/Math.max(1,(margin*tokensYear/1e6)))/1:Infinity;
+    set('bizRevOut','$'+fmt(rev,3));set('bizMarg2Out','$'+fmt(margin,3));set('bizPctOut',fmt(pct,0)+'%');set('bizPayOut',Number.isFinite(payback)?fmt(payback,1)+' yr':'never');
+    set('bizMarginOut','$'+fmt(margin,3)+' /1M tok ('+fmt(pct,0)+'%)');
+    set('bizNote','Revenue basis: '+(sv('bizRev')==='lessor'?'$'+fmt(n('bizGpuh'),2)+'/GPU-hour':md.name+' market $'+fmt(md.price,2)+'/1M tok')+'. Margin = revenue − delivered cost. Payback is simple (undiscounted) on initial CAPEX.');
+  } else {if($('bizPanel'))$('bizPanel').style.display='none';set('bizMarginOut','—');}
   runSensitivity(results);
   try{drawViz(results);}catch(e){}
+  // multi-site comparison (re-entrant; guard with SILENT already false here)
+  if(!SILENT&&!CMP_RUNNING){CMP_RUNNING=true;try{
+    const keys=(sv('cmpSites')||'').split(',').map(x=>x.trim()).filter(x=>SITES[x]).slice(0,4);
+    if(keys.length){$('comparePanel').style.display='';
+      const rowsC=keys.map(k=>{const r=runAtSite(k);if(!r)return '';const g=r.co2Total*1e6/(r.tokensYear*years)*1e6;return '<tr><td>'+(SITES[k].name||k)+'</td><td>$'+fmt(r.tokenCost,3)+'</td><td>'+money(r.capexPerMW)+'</td><td>'+fmt(r.ttp,0)+' mo</td><td>'+r.ttpKey+'</td><td>'+fmt(g,0)+'</td></tr>';}).join('');
+      $('compareRowsOut').innerHTML=rowsC;
+    } else if($('comparePanel'))$('comparePanel').style.display='none';
+  }catch(e){}finally{CMP_RUNNING=false;}}
   return results;
 }
 
@@ -1067,7 +1385,7 @@ $('vizPop').addEventListener('click',()=>{
   w.document.close();
 });
 
-$('download').addEventListener('click',()=>{const o={model:'terrestrial_ai_datacenter',version:'0.8',site:$('sitePreset').value,inputs:{},mix:MIX,overrides:Object.keys(siteOverrides),results:lastData?{tokenCost:lastData.tokenCost,capexPerMW:lastData.capexPerMW,pue:lastData.pue,ttp:lastData.ttp,binding:lastData.ttpKey}:null};document.querySelectorAll('input,select').forEach(e=>{if(e.type==='file')return;o.inputs[e.id]=e.type==='number'?Number(e.value):e.value;});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));a.download='terrestrial-ai-scenario.json';a.click();URL.revokeObjectURL(a.href);});
+$('download').addEventListener('click',()=>{const o={model:'terrestrial_ai_datacenter',version:'1.0',site:$('sitePreset').value,inputs:{},mix:MIX,overrides:Object.keys(siteOverrides),results:lastData?{tokenCost:lastData.tokenCost,capexPerMW:lastData.capexPerMW,pue:lastData.pue,ttp:lastData.ttp,binding:lastData.ttpKey}:null};document.querySelectorAll('input,select').forEach(e=>{if(e.type==='file')return;o.inputs[e.id]=e.type==='number'?Number(e.value):e.value;});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));a.download='terrestrial-ai-scenario.json';a.click();URL.revokeObjectURL(a.href);});
 
 // ---------- break-even ----------
 $('breakeven').addEventListener('click',()=>{$('beBox').style.display='block';solveBreakeven();});
@@ -1095,7 +1413,7 @@ function runTests(){
   const hv=haversineKm(50.11,8.68,52.37,4.90);add('Haversine Frankfurt→Amsterdam','~364 km',fmt(hv,0)+' km',approx(hv,364,.02));
   const wb=wetBulbStull(30,50);add('Wet-bulb (Stull) 30 °C, 50% RH','~22.0 °C',fmt(wb,1)+' °C',approx(wb,22.0,.03));
   // parity with orbital §21 terrestrial stub: 1 MW, 10% spares, single facility 12 $M/MW, PUE 1.3, $80 flat, 4% opex, 99.5%, horizon 10, refresh 3, L=U (a=0)
-  const savedSel={};['facMode','opexMode','pueMode','availMode','tpsMode','refreshStrat','arch'].forEach(id=>{savedSel[id]=$(id).value;});
+  const savedSel={};['facMode','opexMode','pueMode','availMode','tpsMode','refreshStrat','arch','finMode','bizMode','cohortMode','demandMode','riskMode'].forEach(id=>{savedSel[id]=$(id).value;});['finMode','bizMode','cohortMode','demandMode','riskMode'].forEach(id=>$(id).value=($(id).id==='cohortMode'||$(id).id==='demandMode'||$(id).id==='riskMode'||$(id).id==='finMode'||$(id).id==='bizMode')?'off':$(id).value);
   $('facMode').value='single';$('opexMode').value='single';$('pueMode').value='manual';$('availMode').value='manual';$('tpsMode').value='manual';$('refreshStrat').value='line';$('arch').value='land';
   const savedMix=JSON.parse(JSON.stringify(MIX));applyTemplate('grid');MIX=[{opt:'grid',mw:2,order:0}];
   let par;SILENT=true;try{OV={mw:1,spare:10,tFac:12,pueManual:1.3,tariff:80,tariffEsc:0,ciEsc:0,tOpex:4,tAvail:99.5,years:10,disc:8,refresh:3,tFacLife:15,rcost:4,itoh:10,util:75,tpsmw:2800000,idle:0,incentive:0,co2:0,rkw:135,gpus:72,licenceFee:0,rdAlloc:0,dutyAccel:0,maturity:1};par=calc().tokenCost;}finally{OV=null;SILENT=false;Object.entries(savedSel).forEach(([id,v])=>$(id).value=v);}
@@ -1113,7 +1431,11 @@ function runTests(){
   add('Composition: §10.2 stack, US avg, Tier III, air, grid-only (gensets priced in the mix)','≈ $12M / MW IT (±5%)','$'+fmt(comp,2)+'M',approx(comp,12,.05));
   // layout: no horizontal overflow at narrow width is a browser check; report viewport
   const tagged=[...document.querySelectorAll('[data-test-id],[data-test-out]')];const missReq=tagged.filter(e=>!e.dataset.testKind||!e.dataset.testTab||!e.dataset.testLabel);const untagged=[...document.querySelectorAll('.pane input,.pane select,.pane button,.actions button')].filter(e=>e.id&&!e.dataset.testId);add('Testability: interactive elements + readouts tagged with required data-test-* attrs','0 untagged / 0 missing',untagged.length+' untagged / '+missReq.length+' missing',untagged.length===0&&missReq.length===0);
-  const rt=(()=>{const before=JSON.stringify(currentSiteRecord('rt'));const j=toJurisdiction(currentSiteRecord('rt'));const back=fromJurisdiction(Object.assign({},j,{id:'__rt'}));return Object.keys(J2F).every(k=>!currentSiteRecord('rt').f[k]||Math.abs(back.f[k][0]-currentSiteRecord('rt').f[k][0])<1e-9);})();(function(){const sv0={p:$('platform').value,m:$('model').value,mode:$('tpsMode').value};$('platform').value='gb300';$('model').value='llama4sco';$('tpsMode').value='auto';let dv;SILENT=true;try{dv=calc();}finally{SILENT=false;}const pf=PLATFORMS.find(x=>x.id==='gb300'),md=MODELS.find(x=>x.id==='llama4sco');const d=derivedTPSMW(pf,md).v;$('platform').value=sv0.p;$('model').value=sv0.m;$('tpsMode').value=sv0.mode;calc();add('Throughput derivation: GB300 × 17B-active model within ±30% of the 2.8M referential cell','2.0–3.6M tok/s/MW',fmt(d/1e6,2)+'M',Math.abs(d-2.8e6)<=0.3*2.8e6);})();
+  const rt=(()=>{const before=JSON.stringify(currentSiteRecord('rt'));const j=toJurisdiction(currentSiteRecord('rt'));const back=fromJurisdiction(Object.assign({},j,{id:'__rt'}));return Object.keys(J2F).every(k=>!currentSiteRecord('rt').f[k]||Math.abs(back.f[k][0]-currentSiteRecord('rt').f[k][0])<1e-9);})();(function(){const fm=$('finMode').value;const b=calc().tokenCost;$('finMode').value='on';const sp=$('finPropDebt').value,sc=$('finCompDebt').value,se=$('finEquity').value;$('finPropDebt').value='0';$('finCompDebt').value='0';$('finEquity').value=$('disc').value;let z;SILENT=true;try{z=calc().tokenCost;}finally{SILENT=false;}$('finPropDebt').value=sp;$('finCompDebt').value=sc;$('finEquity').value=se;$('finMode').value=fm;calc();add('Financing: 0% debt with equity=discount reproduces all-equity result','$'+fmt(b,3),'$'+fmt(z,3),Math.abs(z-b)<0.003);})();
+  (function(){const rm=$('riskMode').value;const saveR=RISKVALS.map(r=>({...r}));$('riskMode').value='on';RISKVALS.forEach(r=>{r.p=0;});let z;SILENT=true;try{z=calc();}finally{SILENT=false;}const eq=z.risk&&Math.abs(z.risk.tok-z.tokenCost)<1e-9&&Math.abs(z.risk.ttp-z.ttp)<1e-9;RISKVALS=saveR;$('riskMode').value=rm;calc();add('Risk: all probabilities 0 → risked equals unrisked',' equal',eq?'equal':'differ',!!eq);})();
+  (function(){const dm=$('demandMode').value;$('demandMode').value='off';const b=calc().tokenCost;$('demandMode').value='on';let don;SILENT=true;try{don=calc().tokenCost;}finally{SILENT=false;}$('demandMode').value=dm;calc();add('Demand mode: on with default capture raises cost vs off (utilization < 100%)','on ≥ off','off $'+fmt(b,3)+' / on $'+fmt(don,3),don>=b-0.001);})();
+  (function(){const base=calc().tokenCost;const cm=$('cohortMode').value;const saveC=COHORTS.slice();$('cohortMode').value='on';COHORTS=defaultCohorts();let ct;SILENT=true;try{ct=calc().tokenCost;}finally{SILENT=false;}$('cohortMode').value=cm;COHORTS=saveC;calc();add('Cohort mode: single default reproduces base $/1M tokens (±3%)','$'+fmt(base,3),'$'+fmt(ct,3),Math.abs(ct-base)<=0.03*Math.max(0.01,base));})();
+  (function(){const sv0={p:$('platform').value,m:$('model').value,mode:$('tpsMode').value};$('platform').value='gb300';$('model').value='llama4sco';$('tpsMode').value='auto';let dv;SILENT=true;try{dv=calc();}finally{SILENT=false;}const pf=PLATFORMS.find(x=>x.id==='gb300'),md=MODELS.find(x=>x.id==='llama4sco');const d=derivedTPSMW(pf,md).v;$('platform').value=sv0.p;$('model').value=sv0.m;$('tpsMode').value=sv0.mode;calc();add('Throughput derivation: GB300 × 17B-active model within ±30% of the 2.8M referential cell','2.0–3.6M tok/s/MW',fmt(d/1e6,2)+'M',Math.abs(d-2.8e6)<=0.3*2.8e6);})();
   add('Site record round-trip: preset → jurisdiction JSON → preset','values preserved',String(rt),rt);
   const ov=document.documentElement.scrollWidth<=window.innerWidth+1;add('Layout: no horizontal overflow at current viewport ('+window.innerWidth+' px)','true',String(ov),ov);
   calc();
@@ -1161,7 +1483,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')$('specModal').style
 // ---------- testability tags (shared convention with the orbital tool) ----------
 document.querySelectorAll('.pane').forEach(p=>{const tab=p.id;p.querySelectorAll('input,select,button,output').forEach(e=>{if(!e.id)return;const lab=e.previousElementSibling&&e.previousElementSibling.tagName==='LABEL'?e.previousElementSibling.textContent.replace(/\s*(anchor|referential|baseline|scenario|derived)$/,'').trim():e.textContent.trim();e.dataset.testId=e.id;e.dataset.testKind=e.tagName==='OUTPUT'?'readout':e.tagName==='BUTTON'?'action':e.type==='number'?'number':e.type==='range'?'number':e.type==='text'?'text':e.type==='file'?'file':'select';e.dataset.testTab=tab;e.dataset.testLabel=lab||e.getAttribute('title')||e.id;});});
 document.querySelectorAll('.actions button, #beBox select, #beBox input, #beBox button, #testBox button, #specModal button, #specModal input').forEach(e=>{if(!e.id)return;e.dataset.testId=e.id;e.dataset.testKind=e.tagName==='BUTTON'?'action':e.type==='file'?'file':e.tagName==='SELECT'?'select':'number';e.dataset.testTab=e.closest('#beBox')?'modal:breakeven':e.closest('#specModal')?'modal:spec':'global';e.dataset.testLabel=(e.getAttribute('title')||e.textContent.trim()||e.id);});
-document.querySelectorAll('.metric .v, .metric .l, .call, #tornadoNote, #footerNote, #vizTitle, #vizCaption, #archNote, #siteNote, #dataStatus, #platformNote, #regimeNote').forEach(e=>{if(!e.id)return;e.dataset.testId=e.id;e.dataset.testKind='readout';e.dataset.testTab=(e.id==='vizTitle'||e.id==='vizCaption')?'visuals':(e.id==='archNote'||e.id==='siteNote'||e.id==='dataStatus')?'site':(e.id==='platformNote'||e.id==='regimeNote')?'compute':'results';e.dataset.testLabel=({vizTitle:'Graphical model title',vizCaption:'Graphical model caption',archNote:'Archetype description',siteNote:'Site preset summary',dataStatus:'Data source status',platformNote:'Platform description',regimeNote:'Regime description'}[e.id])||((e.parentElement.querySelector('.l')||e).textContent.trim())||e.id;});
+document.querySelectorAll('.metric .v, .metric .l, .call, #tornadoNote, #footerNote, #vizTitle, #vizCaption, #archNote, #siteNote, #dataStatus, #platformNote, #regimeNote, #fleetNote, #bizNote, #demNote, #riskNote').forEach(e=>{if(!e.id)return;e.dataset.testId=e.id;e.dataset.testKind='readout';e.dataset.testTab=(e.id==='vizTitle'||e.id==='vizCaption')?'visuals':(e.id==='archNote'||e.id==='siteNote'||e.id==='dataStatus')?'site':(e.id==='platformNote'||e.id==='regimeNote')?'compute':(e.id==='fleetNote')?'fleet':(e.id==='bizNote')?'results':(e.id==='demNote')?'demand':(e.id==='riskNote')?'risk':'results';e.dataset.testLabel=({vizTitle:'Graphical model title',vizCaption:'Graphical model caption',archNote:'Archetype description',siteNote:'Site preset summary',dataStatus:'Data source status',platformNote:'Platform description',regimeNote:'Regime description',fleetNote:'Fleet allocation note',bizNote:'Business-case note',demNote:'Demand note',riskNote:'Risk note'}[e.id])||((e.parentElement.querySelector('.l')||e).textContent.trim())||e.id;});
 
 // populate compute catalogs
 (function(){const ps=$('platform');PLATFORMS.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name+(p.exp==='cloud-only'?' — cloud-only':p.exp==='region-restricted'?' — restricted':'');ps.appendChild(o);});
@@ -1170,6 +1492,14 @@ document.querySelectorAll('.metric .v, .metric .l, .call, #tornadoNote, #footerN
 function applyPlatform(){const p=curPlatform();$('rkw').value=p.kw;$('gpus').value=p.acc;$('hbm').value=p.hbm;$('rcost').value=p.cost;$('maturity').value=p.mat;if(p.cool==='air'&&['dlc','imm','rdhx'].includes($('cool').value)){}else if(p.cool==='dlc'&&$('cool').value==='air'){$('cool').value='dlc';}
  ['lab_rkw','lab_rcost'].forEach(id=>{const e=$(id);});}
 $('platform').addEventListener('change',()=>{applyPlatform();calc();});
+
+$('cohortMode').addEventListener('change',()=>{if(sv('cohortMode')==='on'&&COHORTS.length===0){COHORTS=defaultCohorts();renderCohorts();}calc();});
+['demandMode','demD0','demGrow','demLat','demAddr','demCap','demRamp','demReverse'].forEach(id=>$(id).addEventListener('input',calc));
+$('riskMode').addEventListener('change',()=>{if(sv('riskMode')==='on')renderRisks();calc();});$('riskBenefit').addEventListener('input',calc);renderRisks();
+['cmpSites','bizMode','bizRev','bizGpuh','finMode','finPropDebt','finPropRate','finCompDebt','finCompRate','finEquity'].forEach(id=>$(id).addEventListener('input',calc));
+['classSplit','retireRule','residFloor','tputFloor','p0Fail','gFail'].forEach(id=>$(id).addEventListener('input',calc));
+$('cohortAdd').addEventListener('click',()=>{COHORTS.push({platform:curPlatform().id,installY:0,stages:[{cls:'heavy',months:24},{cls:'mid',months:24},{cls:'light',months:24}]});renderCohorts();calc();});
+
 ['model','regime','tpsMode','residualBand','refreshStrat','maturity'].forEach(id=>$(id).addEventListener('change',calc));
 
 applyTemplate('grid');
