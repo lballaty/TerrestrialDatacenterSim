@@ -3,11 +3,11 @@
  "meta": {
   "target": "Terrestrial AI Data Center Siting and Economics Model",
   "url": "https://lballaty.github.io/TerrestrialDatacenterSim/",
-  "app_version_at_authoring": "v0.8",
-  "catalog_version": "1.4.0",
+  "app_version_at_authoring": "v1.0",
+  "catalog_version": "2.0.0",
   "authored": "2026-09-05",
   "author": "Test plan generated for Libor Ballaty (Arion Networks s.r.o.)",
-  "status": "Draft for Review",
+  "status": "Feature-complete; reference values pending audit",
   "purpose": "Executable spec an LLM/browser agent follows to verify 100% of actions, dropdowns, inputs, modals and readouts in the app AND that the numbers produced are physically/economically reasonable.",
   "companion_doc": "TerrestrialDatacenterSim-test-plan.md",
   "notes": [
@@ -124,6 +124,22 @@
    {
     "id": "visuals",
     "label": "Visuals"
+   },
+   {
+    "id": "fleet",
+    "label": "Fleet"
+   },
+   {
+    "id": "demand",
+    "label": "Demand"
+   },
+   {
+    "id": "risk",
+    "label": "Risk"
+   },
+   {
+    "id": "compare",
+    "label": "Compare"
    }
   ],
   "numeric_inputs": [
@@ -865,6 +881,152 @@
     "step": 0.01,
     "unit": "$/1M",
     "gated_by": "regime"
+   },
+   {
+    "tab": "fleet",
+    "id": "residFloor",
+    "label": "Residual floor %",
+    "default": 30,
+    "step": 5,
+    "unit": "%",
+    "gated_by": "retireRule"
+   },
+   {
+    "tab": "fleet",
+    "id": "tputFloor",
+    "label": "Throughput floor %",
+    "default": 40,
+    "step": 5,
+    "unit": "%",
+    "gated_by": "retireRule"
+   },
+   {
+    "tab": "fleet",
+    "id": "p0Fail",
+    "label": "Run-to-failure p0 %",
+    "default": 3,
+    "step": 1,
+    "unit": "%",
+    "gated_by": "retireRule"
+   },
+   {
+    "tab": "fleet",
+    "id": "gFail",
+    "label": "Failure growth γ/yr",
+    "default": 0.25,
+    "step": 0.05,
+    "unit": "/yr",
+    "gated_by": "retireRule"
+   },
+   {
+    "tab": "demand",
+    "id": "demD0",
+    "label": "Global demand T tok/day",
+    "default": 200,
+    "step": 10,
+    "unit": "T/day"
+   },
+   {
+    "tab": "demand",
+    "id": "demGrow",
+    "label": "Demand growth %/yr",
+    "default": 40,
+    "step": 5,
+    "unit": "%/yr"
+   },
+   {
+    "tab": "demand",
+    "id": "demLat",
+    "label": "Latency budget ms",
+    "default": 100,
+    "step": 10,
+    "unit": "ms"
+   },
+   {
+    "tab": "demand",
+    "id": "demAddr",
+    "label": "Addressable share",
+    "default": 0.4,
+    "step": 0.05,
+    "unit": "frac"
+   },
+   {
+    "tab": "demand",
+    "id": "demCap",
+    "label": "Capture share",
+    "default": 0.01,
+    "step": 0.005,
+    "unit": "frac"
+   },
+   {
+    "tab": "demand",
+    "id": "demRamp",
+    "label": "Ramp months",
+    "default": 18,
+    "step": 3,
+    "unit": "mo"
+   },
+   {
+    "tab": "risk",
+    "id": "riskBenefit",
+    "label": "Community-benefit payment $k/MW",
+    "default": 0,
+    "step": 10,
+    "unit": "$k/MW"
+   },
+   {
+    "tab": "compare",
+    "id": "bizGpuh",
+    "label": "Lessor $/GPU-hour",
+    "default": 2.5,
+    "step": 0.1,
+    "unit": "$/GPUh",
+    "gated_by": "bizRev"
+   },
+   {
+    "tab": "compare",
+    "id": "finPropDebt",
+    "label": "PropCo debt share",
+    "default": 0.6,
+    "step": 0.05,
+    "unit": "frac",
+    "gated_by": "finMode"
+   },
+   {
+    "tab": "compare",
+    "id": "finPropRate",
+    "label": "PropCo rate %",
+    "default": 6.5,
+    "step": 0.5,
+    "unit": "%",
+    "gated_by": "finMode"
+   },
+   {
+    "tab": "compare",
+    "id": "finCompDebt",
+    "label": "ComputeCo debt share",
+    "default": 0.5,
+    "step": 0.05,
+    "unit": "frac",
+    "gated_by": "finMode"
+   },
+   {
+    "tab": "compare",
+    "id": "finCompRate",
+    "label": "ComputeCo rate %",
+    "default": 9,
+    "step": 0.5,
+    "unit": "%",
+    "gated_by": "finMode"
+   },
+   {
+    "tab": "compare",
+    "id": "finEquity",
+    "label": "Cost of equity %",
+    "default": 12,
+    "step": 0.5,
+    "unit": "%",
+    "gated_by": "finMode"
    }
   ],
   "text_file_inputs": [
@@ -881,6 +1043,18 @@
     "label": "",
     "kind": "file",
     "unit": ""
+   },
+   {
+    "id": "classSplit",
+    "tab": "fleet",
+    "label": "Model-class demand split",
+    "kind": "text"
+   },
+   {
+    "id": "cmpSites",
+    "tab": "compare",
+    "label": "Compare sites",
+    "kind": "text"
    }
   ],
   "selects": [
@@ -1263,6 +1437,93 @@
     ],
     "default": "mid",
     "effect": "Conservative/mid/optimistic resale-value curve."
+   },
+   {
+    "tab": "fleet",
+    "id": "cohortMode",
+    "label": "Cohort mode",
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off",
+    "effect": "Off = single-cohort refresh (Compute tab); on = cohorts & cascade."
+   },
+   {
+    "tab": "fleet",
+    "id": "retireRule",
+    "label": "Retirement rule",
+    "options": [
+     "interval",
+     "resid",
+     "tput",
+     "never"
+    ],
+    "default": "interval",
+    "effect": "When a cohort leaves service."
+   },
+   {
+    "tab": "demand",
+    "id": "demandMode",
+    "label": "Demand mode",
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off",
+    "effect": "Off = fixed utilization; on = derived from demand."
+   },
+   {
+    "tab": "demand",
+    "id": "demReverse",
+    "label": "Reverse mode",
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off",
+    "effect": "Size MW for target capture."
+   },
+   {
+    "tab": "risk",
+    "id": "riskMode",
+    "label": "Risk mode",
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off",
+    "effect": "Off = deterministic; on = expected-value risk adjustments."
+   },
+   {
+    "tab": "compare",
+    "id": "bizMode",
+    "label": "Business-case mode",
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off"
+   },
+   {
+    "tab": "compare",
+    "id": "bizRev",
+    "label": "Revenue basis",
+    "options": [
+     "model",
+     "lessor"
+    ],
+    "default": "model"
+   },
+   {
+    "tab": "compare",
+    "id": "finMode",
+    "label": "Financing mode",
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off"
    }
   ],
   "buttons_contextual": [
@@ -1300,6 +1561,11 @@
     "id": "vizPop",
     "tab": "visuals",
     "label": "Pop-out this view"
+   },
+   {
+    "id": "cohortAdd",
+    "tab": "fleet",
+    "label": "Add cohort"
    }
   ],
   "power_mix_dynamic": {
@@ -1540,6 +1806,118 @@
     "shows": "Regime description",
     "role": "note",
     "rules": "R21"
+   },
+   {
+    "id": "fleetTokOut",
+    "region": "fleet",
+    "shows": "Fleet tokens over horizon",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "fleetMWOut",
+    "region": "fleet",
+    "shows": "Peak MW allocated",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "fleetNote",
+    "region": "fleet",
+    "shows": "Fleet allocation note",
+    "role": "note",
+    "rules": "R21"
+   },
+   {
+    "id": "demUtilOut",
+    "region": "demand",
+    "shows": "Derived utilization",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "demServedOut",
+    "region": "demand",
+    "shows": "Served vs installed",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "demNote",
+    "region": "demand",
+    "shows": "Demand note",
+    "role": "note",
+    "rules": "R21"
+   },
+   {
+    "id": "riskTtpOut",
+    "region": "risk",
+    "shows": "Risked time to power",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "riskTokOut",
+    "region": "risk",
+    "shows": "Risked $/1M tokens",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "riskNote",
+    "region": "risk",
+    "shows": "Risk note",
+    "role": "note",
+    "rules": "R21"
+   },
+   {
+    "id": "finWaccOut",
+    "region": "compare",
+    "shows": "Blended WACC",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "bizMarginOut",
+    "region": "compare",
+    "shows": "Gross margin/1M tokens",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "bizRevOut",
+    "region": "results",
+    "shows": "Revenue/1M tokens",
+    "role": "kpi",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "bizMarg2Out",
+    "region": "results",
+    "shows": "Gross margin/1M tokens",
+    "role": "kpi",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "bizPctOut",
+    "region": "results",
+    "shows": "Gross margin %",
+    "role": "kpi",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "bizPayOut",
+    "region": "results",
+    "shows": "Simple payback",
+    "role": "kpi",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "bizNote",
+    "region": "results",
+    "shows": "Business-case note",
+    "role": "note",
+    "rules": "R21"
    }
   ],
   "modal_controls": [
@@ -1769,6 +2147,31 @@
    "parametric_over": "control_registry (platform × model)",
    "proves": "Every platform and model selects and computes without NaN; throughput basis badge correct; residual/refresh strategies and duty behave (R30–R33).",
    "type": "functional+validity"
+  },
+  {
+   "id": "S17",
+   "name": "Fleet cohorts & cascade",
+   "parametric_over": "cohort scenarios",
+   "proves": "Cohort mode toggles cleanly (R34), respects the MW cap (R35), and cascades classes correctly (R36); add/remove cohorts and all retirement rules compute without NaN.",
+   "type": "functional+validity"
+  },
+  {
+   "id": "S18",
+   "name": "Demand module",
+   "proves": "Demand mode toggles cleanly (R37), derives utilization with correct monotonicity (R38); ramp and addressable share behave; no NaN.",
+   "type": "functional+validity"
+  },
+  {
+   "id": "S19",
+   "name": "Risk register",
+   "proves": "Risk toggles cleanly (R39), zero-probability identity holds (R40), benefit reduces opposition (R41); per-risk contributions sum to the total adjustment.",
+   "type": "functional+validity"
+  },
+  {
+   "id": "S20",
+   "name": "Comparison, business case, financing",
+   "proves": "Multi-site table matches single-scenario results (R44); business case margins consistent (R43); financing WACC replaces discount and 0-debt reproduces all-equity (R42); all three off by default preserve parity.",
+   "type": "functional+validity"
   }
  ],
  "reasonableness_rules": [
@@ -1969,6 +2372,72 @@
    "name": "Import duty on compute",
    "check": "An x% accelerator duty raises compute CAPEX by exactly x% and nothing else.",
    "severity": "medium"
+  },
+  {
+   "id": "R34",
+   "name": "Cohort mode default reproduces base",
+   "check": "With cohort mode on and one default cohort, $/1M tokens equals the cohort-off base within 3%.",
+   "severity": "high"
+  },
+  {
+   "id": "R35",
+   "name": "Fleet capacity constraint",
+   "check": "Peak MW allocated across live cohorts never exceeds facility productive MW; retired capacity is auto-refreshed to keep the hall full, not stacked.",
+   "severity": "high"
+  },
+  {
+   "id": "R36",
+   "name": "Cascade tokens by class",
+   "check": "A cohort aged into a lighter stage produces more tokens/s/MW than in its heavy stage (light models are cheaper to serve); tokens are attributed to the correct class column.",
+   "severity": "medium"
+  },
+  {
+   "id": "R37",
+   "name": "Demand off = base",
+   "check": "With demand mode off, results equal the fixed-utilization base.",
+   "severity": "high"
+  },
+  {
+   "id": "R38",
+   "name": "Demand monotonicity",
+   "check": "Higher capture share → higher derived utilization → lower $/1M tokens; zero capture → utilization floor and a much higher cost (stranded capacity).",
+   "severity": "high"
+  },
+  {
+   "id": "R39",
+   "name": "Risk off = deterministic",
+   "check": "Risk mode off leaves the result unchanged; on shows unrisked and risked side by side.",
+   "severity": "high"
+  },
+  {
+   "id": "R40",
+   "name": "Risk zero-probability identity",
+   "check": "With all probabilities 0, risked time and cost equal unrisked exactly.",
+   "severity": "high"
+  },
+  {
+   "id": "R41",
+   "name": "Community-benefit reduces opposition",
+   "check": "A community-benefit payment lowers the community-opposition probability and thus the expected delay, but never below 0.",
+   "severity": "medium"
+  },
+  {
+   "id": "R42",
+   "name": "Financing off = all-equity",
+   "check": "Financing off uses the discount rate; 0% debt in on-mode reproduces the all-equity result; positive debt lowers WACC below cost of equity and changes $/1M tokens.",
+   "severity": "high"
+  },
+  {
+   "id": "R43",
+   "name": "Business-case margin",
+   "check": "Gross margin = revenue − delivered cost per 1M tokens; margin % and simple payback are consistent; lessor basis uses $/GPU-hour.",
+   "severity": "medium"
+  },
+  {
+   "id": "R44",
+   "name": "Comparison diagonal",
+   "check": "A site's row in the comparison table equals the single-scenario result when that site is selected.",
+   "severity": "medium"
   }
  ],
  "oracle": {
@@ -2079,7 +2548,11 @@
    "modal:breakeven",
    "modal:spec",
    "modal:test",
-   "visuals"
+   "visuals",
+   "fleet",
+   "demand",
+   "risk",
+   "compare"
   ],
   "optional": [
    "data-test-unit",

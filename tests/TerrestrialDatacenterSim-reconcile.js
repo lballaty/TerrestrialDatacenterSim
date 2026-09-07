@@ -101,7 +101,7 @@
       warnings: []               // soft: tab/label wording differences
     };
 
-    tagged.forEach(function (t, id) { if (!declared.has(id)) report.dom_only.push(id); });
+    tagged.forEach(function (t, id) { if (!declared.has(id) && !/^(mix(Opt|MW|Ord|Del)|coh(Plat|Y|Stg|Del)|risk(P|Dt|Cx))\d+$/.test(id)) report.dom_only.push(id); });
     declared.forEach(function (d, id) { if (!doc.getElementById(id)) if(!/^mix(Opt|MW|Ord|Del)\d+$/.test(id)) report.manifest_only.push(id); });
     candidates.forEach(function (id) { if (!tagged.has(id)) report.untagged.push(id); });
 
