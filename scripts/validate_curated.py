@@ -14,7 +14,8 @@ LABELS = {"referential", "baseline"}
 STRUCTURAL_KEYS = {"id", "name", "parent", "currency", "note", "notes", "aliases", "tariff_structure", "scheme",
                    "data_sovereignty_constraints", "export_control_class", "status", "granularity", "firmness",
                    "cooling", "dependency", "licence", "purchasable", "interconnect", "unit", "seed_rows",
-                   "schema", "generated", "as_of", "eu_ai_act_gpai_relevance", "source_url", "label"}
+                   "schema", "generated", "as_of", "eu_ai_act_gpai_relevance", "source_url", "label",
+                   "granularity", "accelerators_per_unit", "peak_kw", "hbm_gb_per_accelerator", "export_status", "residual_pct_12_24_36_48_60", "total_params_b", "active_params_b", "weight_bytes_per_param", "kv_bytes_per_token", "cells", "firmness"}
 
 def leaf_ok(path, v, errors):
     if isinstance(v, bool) or v is None:
