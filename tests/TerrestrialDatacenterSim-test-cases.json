@@ -2,9 +2,9 @@
  "$schema": "https://json-schema.org/draft/2020-12/schema",
  "meta": {
   "target": "Terrestrial AI Data Center Siting and Economics Model",
-  "url": "https://<owner>.github.io/TerrestrialDatacenterSim/",
-  "app_version_at_authoring": "v0.4",
-  "catalog_version": "1.0.0",
+  "url": "https://lballaty.github.io/TerrestrialDatacenterSim/",
+  "app_version_at_authoring": "v0.8",
+  "catalog_version": "1.4.0",
   "authored": "2026-09-05",
   "author": "Test plan generated for Libor Ballaty (Arion Networks s.r.o.)",
   "status": "Draft for Review",
@@ -120,6 +120,10 @@
    {
     "id": "time",
     "label": "Timeline"
+   },
+   {
+    "id": "visuals",
+    "label": "Visuals"
    }
   ],
   "numeric_inputs": [
@@ -720,6 +724,147 @@
     "default": 30,
     "step": 1,
     "unit": "mo"
+   },
+   {
+    "tab": "visuals",
+    "id": "vizZoom",
+    "label": "Location zoom level",
+    "default": 0,
+    "min": 0,
+    "step": 1,
+    "unit": "level"
+   },
+   {
+    "tab": "visuals",
+    "id": "vizStage",
+    "label": "Build-up stage",
+    "default": 5,
+    "min": 1,
+    "step": 1,
+    "unit": "stage"
+   },
+   {
+    "tab": "site",
+    "id": "archStruct",
+    "label": "Structure $/MW IT (archetype)",
+    "default": 9,
+    "step": 0.5,
+    "unit": "$M/MW",
+    "gated_by": "arch"
+   },
+   {
+    "tab": "site",
+    "id": "archMaint",
+    "label": "Structure maintenance uplift %/yr",
+    "default": 1,
+    "step": 0.5,
+    "unit": "%/yr",
+    "gated_by": "arch"
+   },
+   {
+    "tab": "site",
+    "id": "archLandKm",
+    "label": "Marine power+fibre landing km",
+    "default": 20,
+    "step": 5,
+    "unit": "km",
+    "gated_by": "arch"
+   },
+   {
+    "tab": "site",
+    "id": "archDown",
+    "label": "Weather/recovery downtime %/yr",
+    "default": 0.5,
+    "step": 0.1,
+    "unit": "%/yr",
+    "gated_by": "arch"
+   },
+   {
+    "tab": "site",
+    "id": "phHead",
+    "label": "Pumped-hydro head m",
+    "default": 400,
+    "step": 10,
+    "unit": "m",
+    "gated_by": "arch"
+   },
+   {
+    "tab": "site",
+    "id": "phVol",
+    "label": "Pumped-hydro usable reservoir thousand m³",
+    "default": 500,
+    "step": 50,
+    "unit": "k m3",
+    "gated_by": "arch"
+   },
+   {
+    "tab": "site",
+    "id": "phEff",
+    "label": "Pumped-hydro round-trip efficiency",
+    "default": 0.8,
+    "step": 0.01,
+    "unit": "frac",
+    "gated_by": "arch"
+   },
+   {
+    "tab": "site",
+    "id": "phCivil",
+    "label": "Reservoir + civil works $M",
+    "default": 60,
+    "step": 5,
+    "unit": "$M",
+    "gated_by": "arch"
+   },
+   {
+    "tab": "compute",
+    "id": "hbm",
+    "label": "HBM per accelerator GB",
+    "default": 288,
+    "step": 8,
+    "unit": "GB"
+   },
+   {
+    "tab": "compute",
+    "id": "maturity",
+    "label": "Software maturity factor",
+    "default": 1.0,
+    "step": 0.05,
+    "min": 0.6,
+    "unit": "frac"
+   },
+   {
+    "tab": "compute",
+    "id": "sellMonth",
+    "label": "Resell month (rotate)",
+    "default": 24,
+    "step": 3,
+    "unit": "mo",
+    "gated_by": "refreshStrat"
+   },
+   {
+    "tab": "compute",
+    "id": "dutyAccel",
+    "label": "Accelerator import duty %",
+    "default": 0,
+    "step": 1,
+    "unit": "%"
+   },
+   {
+    "tab": "compute",
+    "id": "licenceFee",
+    "label": "Model licence fee $/1M tok",
+    "default": 0,
+    "step": 0.01,
+    "unit": "$/1M"
+   },
+   {
+    "tab": "compute",
+    "id": "rdAlloc",
+    "label": "R&D allocation $/1M tok",
+    "default": 0,
+    "step": 0.01,
+    "unit": "$/1M",
+    "gated_by": "regime"
    }
   ],
   "text_file_inputs": [
@@ -990,6 +1135,134 @@
      "1"
     ],
     "default": "0"
+   },
+   {
+    "tab": "visuals",
+    "id": "vizView",
+    "label": "Graphical view",
+    "options": [
+     "zoom",
+     "plan",
+     "build",
+     "scene"
+    ],
+    "default": "zoom",
+    "effect": "Switches the graphical model: location zoom / above-site plan / build-up."
+   },
+   {
+    "tab": "visuals",
+    "id": "vizOverlay",
+    "label": "Map overlay",
+    "options": [
+     "none",
+     "carbon",
+     "water",
+     "hazard"
+    ],
+    "default": "none",
+    "effect": "Overlays a location metric on the zoom view."
+   },
+   {
+    "tab": "site",
+    "id": "arch",
+    "label": "Siting archetype",
+    "options": [
+     "land",
+     "float",
+     "sub",
+     "mtn"
+    ],
+    "default": "land",
+    "effect": "Reshapes CAPEX (structure replaces land+shell), cooling (seawater WUE 0 for float/sub), power eligibility (pumped hydro for mtn), availability (weather/recovery downtime) and risk."
+   },
+   {
+    "tab": "compute",
+    "id": "platform",
+    "label": "Compute platform",
+    "options": [
+     "gb300",
+     "b300",
+     "mi355x",
+     "mi400",
+     "gaudi3",
+     "cs3",
+     "groq",
+     "sn40",
+     "ascend",
+     "tpu",
+     "trn3"
+    ],
+    "default": "gb300",
+    "effect": "Sets kW/accelerators/HBM/cost/cooling/granularity/residual/export; fields stay editable."
+   },
+   {
+    "tab": "compute",
+    "id": "model",
+    "label": "Served model",
+    "options": [
+     "llama4mav",
+     "llama4sco",
+     "ds v3",
+     "ds r1",
+     "qwen235",
+     "qwen32",
+     "mistral3",
+     "gptoss",
+     "kimi",
+     "gpt",
+     "claude",
+     "gemini"
+    ],
+    "default": "llama4mav",
+    "effect": "Sets throughput (matrix or derived) and market price; proprietary models are lease-only."
+   },
+   {
+    "tab": "compute",
+    "id": "regime",
+    "label": "Operator regime",
+    "options": [
+     "openweight",
+     "ownmodel",
+     "lessor",
+     "enterprise"
+    ],
+    "default": "openweight",
+    "effect": "Cost/revenue framing; gates proprietary models to lessor."
+   },
+   {
+    "tab": "compute",
+    "id": "tpsMode",
+    "label": "Throughput basis",
+    "options": [
+     "auto",
+     "manual"
+    ],
+    "default": "auto",
+    "effect": "Matrix/derived vs manual tokens/s/MW."
+   },
+   {
+    "tab": "compute",
+    "id": "refreshStrat",
+    "label": "Refresh strategy",
+    "options": [
+     "hold",
+     "rotate",
+     "line"
+    ],
+    "default": "hold",
+    "effect": "Residual-curve hold vs rotate-and-resell vs legacy straight-line (parity)."
+   },
+   {
+    "tab": "compute",
+    "id": "residualBand",
+    "label": "Residual band",
+    "options": [
+     "cons",
+     "mid",
+     "opt"
+    ],
+    "default": "mid",
+    "effect": "Conservative/mid/optimistic resale-value curve."
    }
   ],
   "buttons_contextual": [
@@ -1022,6 +1295,11 @@
     "id": "mixAdd",
     "tab": "power",
     "label": "+ Add row"
+   },
+   {
+    "id": "vizPop",
+    "tab": "visuals",
+    "label": "Pop-out this view"
    }
   ],
   "power_mix_dynamic": {
@@ -1206,6 +1484,62 @@
     "shows": "",
     "role": "derived",
     "rules": "R1,R21"
+   },
+   {
+    "id": "vizTitle",
+    "region": "visuals",
+    "shows": "Graphical model title",
+    "role": "note",
+    "rules": "R21"
+   },
+   {
+    "id": "vizCaption",
+    "region": "visuals",
+    "shows": "Graphical model caption (scale, provenance)",
+    "role": "note",
+    "rules": "R21"
+   },
+   {
+    "id": "archNote",
+    "region": "site",
+    "shows": "Archetype description",
+    "role": "note",
+    "rules": "R21"
+   },
+   {
+    "id": "siteNote",
+    "region": "site",
+    "shows": "Site preset summary",
+    "role": "note",
+    "rules": "R21"
+   },
+   {
+    "id": "dataStatus",
+    "region": "site",
+    "shows": "Data source status",
+    "role": "note",
+    "rules": "R21"
+   },
+   {
+    "id": "tpsOut",
+    "region": "compute",
+    "shows": "Derived throughput and basis",
+    "role": "derived",
+    "rules": "R1,R21"
+   },
+   {
+    "id": "platformNote",
+    "region": "compute",
+    "shows": "Platform description",
+    "role": "note",
+    "rules": "R21"
+   },
+   {
+    "id": "regimeNote",
+    "region": "compute",
+    "shows": "Regime description",
+    "role": "note",
+    "rules": "R21"
    }
   ],
   "modal_controls": [
@@ -1263,6 +1597,15 @@
     "label": "Import site JSON",
     "kind": "file"
    }
+  ],
+  "render_surfaces": [
+   {
+    "id": "vizSvg",
+    "region": "visuals",
+    "kind": "svg",
+    "shows": "Location zoom / above-site plan / build-up drawing",
+    "check": "Renders child nodes for each view; redraws on vizView/vizZoom/vizOverlay/vizStage and on any model input; never blank when lastData exists."
+   }
   ]
  },
  "mode_gated_inputs": [
@@ -1285,6 +1628,16 @@
    "input": "pueManual",
    "gated_by": "pueMode",
    "unlock_value": "manual"
+  },
+  {
+   "input": "phHead",
+   "gated_by": "arch",
+   "unlock_value": "mtn"
+  },
+  {
+   "input": "archStruct",
+   "gated_by": "arch",
+   "unlock_value": "float|sub|mtn"
   }
  ],
  "test_suites": [
@@ -1395,6 +1748,27 @@
    "name": "Tag reconciliation",
    "proves": "reconcile(MANIFEST).pass === true; no untagged/dom_only/manifest_only/attr_mismatch beyond documented dynamic mix rows.",
    "type": "validity"
+  },
+  {
+   "id": "S14",
+   "name": "Graphical models",
+   "parametric_over": "control_registry.render_surfaces",
+   "proves": "Each of the 3 views (zoom/plan/build) renders SVG nodes without error and redraws on its controls and on model inputs; pop-out mirrors the scenario (R26). Includes the archetype 'scene' view for float/sub/mtn.",
+   "type": "functional+validity"
+  },
+  {
+   "id": "S15",
+   "name": "Siting archetypes",
+   "parametric_over": "['land','float','sub','mtn']",
+   "proves": "Each archetype selects, computes without NaN, reshapes the CAPEX stack (R27), sets cooling/water/availability (R28), and for mtn respects the pumped-hydro energy limit (R29); land reproduces the oracle and parity.",
+   "type": "functional+validity"
+  },
+  {
+   "id": "S16",
+   "name": "Compute catalogs",
+   "parametric_over": "control_registry (platform × model)",
+   "proves": "Every platform and model selects and computes without NaN; throughput basis badge correct; residual/refresh strategies and duty behave (R30–R33).",
+   "type": "functional+validity"
   }
  ],
  "reasonableness_rules": [
@@ -1547,6 +1921,54 @@
    "name": "Testability tags complete",
    "check": "Every interactive element and readout carries the four required data-test-* attributes; reconcile(MANIFEST).pass === true.",
    "severity": "high"
+  },
+  {
+   "id": "R26",
+   "name": "Graphical model renders and tracks state",
+   "check": "vizSvg has >0 child nodes for each view; plan-view building area equals grossA and the scale bar is drawn; build-up shows the correct number of active stages; zoom pin sits at (lat,lon). No NaN in any caption.",
+   "severity": "medium"
+  },
+  {
+   "id": "R27",
+   "name": "Archetype reshapes stack",
+   "check": "For float/sub/mtn the CAPEX table replaces Land+Site-prep+Shell with a '<archetype> structure' row (and 'Reservoir + civil works' for mtn); land archetype keeps the land rows. Parity mode (land) unaffected.",
+   "severity": "high"
+  },
+  {
+   "id": "R28",
+   "name": "Seawater cooling zeroes water",
+   "check": "float and sub report 0 L water per 1M tokens (WUE 0) and a reduced cooling overhead; availability is reduced by the archetype downtime.",
+   "severity": "medium"
+  },
+  {
+   "id": "R29",
+   "name": "Pumped-hydro energy limit",
+   "check": "Mountain stored energy MWh = ρ·g·H·V·η / 3.6e9 (ρ=1000, g=9.81, H=head m, V=reservoir m³, η=round-trip); firm hours = stored/facility MW. The scene caption shows this and it matches the closed form within 1%.",
+   "severity": "high"
+  },
+  {
+   "id": "R30",
+   "name": "Throughput matrix/derivation",
+   "check": "Referential platform×model cells used verbatim; derived cells for a 17B-active model on GB300 are within ±30% of the 2.8M referential cell; throughput scales down with larger active-parameter models and up with more capable platforms.",
+   "severity": "high"
+  },
+  {
+   "id": "R31",
+   "name": "Residual bands ordered",
+   "check": "opt < mid < cons for $/1M tokens (higher residual → lower cost); rotate-and-resell differs from hold; straight-line legacy reproduces parity.",
+   "severity": "medium"
+  },
+  {
+   "id": "R32",
+   "name": "Export & licence guards",
+   "check": "Cloud-only platforms warn under the open-weight regime; proprietary models warn unless regime=lessor; a platform whose availability year is after project start warns.",
+   "severity": "medium"
+  },
+  {
+   "id": "R33",
+   "name": "Import duty on compute",
+   "check": "An x% accelerator duty raises compute CAPEX by exactly x% and nothing else.",
+   "severity": "medium"
   }
  ],
  "oracle": {
@@ -1656,7 +2078,8 @@
    "global",
    "modal:breakeven",
    "modal:spec",
-   "modal:test"
+   "modal:test",
+   "visuals"
   ],
   "optional": [
    "data-test-unit",
