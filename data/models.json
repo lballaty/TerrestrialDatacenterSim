@@ -1,0 +1,187 @@
+{
+ "schema": "terrestrial-models/0.8",
+ "generated": "2026-09-05",
+ "note": "Served-model catalog mirrored from index.html v0.8. Params from model cards; prices dated blended market rates; proprietary rows carry no self-host throughput and are lease-only.",
+ "records": [
+  {
+   "id": "llama4mav",
+   "name": "Llama 4 Maverick",
+   "total_params_b": 400.0,
+   "active_params_b": 17.0,
+   "weight_bytes_per_param": 1.0,
+   "kv_bytes_per_token": 0.5,
+   "market_price_usd_per_1m_tokens": {
+    "value": 0.6,
+    "label": "referential",
+    "as_of": "2026",
+    "source_url": "provider price lists (blended)"
+   },
+   "licence": "open-weight"
+  },
+  {
+   "id": "llama4sco",
+   "name": "Llama 4 Scout",
+   "total_params_b": 109.0,
+   "active_params_b": 17.0,
+   "weight_bytes_per_param": 1.0,
+   "kv_bytes_per_token": 0.5,
+   "market_price_usd_per_1m_tokens": {
+    "value": 0.35,
+    "label": "referential",
+    "as_of": "2026",
+    "source_url": "provider price lists (blended)"
+   },
+   "licence": "open-weight"
+  },
+  {
+   "id": "ds v3",
+   "name": "DeepSeek V3",
+   "total_params_b": 671.0,
+   "active_params_b": 37.0,
+   "weight_bytes_per_param": 1.0,
+   "kv_bytes_per_token": 0.7,
+   "market_price_usd_per_1m_tokens": {
+    "value": 0.48,
+    "label": "referential",
+    "as_of": "2026",
+    "source_url": "provider price lists (blended)"
+   },
+   "licence": "open-weight"
+  },
+  {
+   "id": "ds r1",
+   "name": "DeepSeek R1",
+   "total_params_b": 671.0,
+   "active_params_b": 37.0,
+   "weight_bytes_per_param": 1.0,
+   "kv_bytes_per_token": 0.7,
+   "market_price_usd_per_1m_tokens": {
+    "value": 0.55,
+    "label": "referential",
+    "as_of": "2026",
+    "source_url": "provider price lists (blended)"
+   },
+   "licence": "open-weight"
+  },
+  {
+   "id": "qwen235",
+   "name": "Qwen3 235B-A22B",
+   "total_params_b": 235.0,
+   "active_params_b": 22.0,
+   "weight_bytes_per_param": 1.0,
+   "kv_bytes_per_token": 0.6,
+   "market_price_usd_per_1m_tokens": {
+    "value": 0.4,
+    "label": "referential",
+    "as_of": "2026",
+    "source_url": "provider price lists (blended)"
+   },
+   "licence": "open-weight"
+  },
+  {
+   "id": "qwen32",
+   "name": "Qwen3 32B (dense)",
+   "total_params_b": 32.0,
+   "active_params_b": 32.0,
+   "weight_bytes_per_param": 1.0,
+   "kv_bytes_per_token": 0.5,
+   "market_price_usd_per_1m_tokens": {
+    "value": 0.2,
+    "label": "referential",
+    "as_of": "2026",
+    "source_url": "provider price lists (blended)"
+   },
+   "licence": "open-weight"
+  },
+  {
+   "id": "mistral3",
+   "name": "Mistral Large 3",
+   "total_params_b": 123.0,
+   "active_params_b": 123.0,
+   "weight_bytes_per_param": 1.0,
+   "kv_bytes_per_token": 0.5,
+   "market_price_usd_per_1m_tokens": {
+    "value": 0.55,
+    "label": "referential",
+    "as_of": "2026",
+    "source_url": "provider price lists (blended)"
+   },
+   "licence": "open-weight"
+  },
+  {
+   "id": "gptoss",
+   "name": "gpt-oss-120b",
+   "total_params_b": 120.0,
+   "active_params_b": 5.1,
+   "weight_bytes_per_param": 1.0,
+   "kv_bytes_per_token": 0.5,
+   "market_price_usd_per_1m_tokens": {
+    "value": 0.25,
+    "label": "referential",
+    "as_of": "2026",
+    "source_url": "provider price lists (blended)"
+   },
+   "licence": "open-weight"
+  },
+  {
+   "id": "kimi",
+   "name": "Kimi K2",
+   "total_params_b": 1000.0,
+   "active_params_b": 32.0,
+   "weight_bytes_per_param": 1.0,
+   "kv_bytes_per_token": 0.7,
+   "market_price_usd_per_1m_tokens": {
+    "value": 0.6,
+    "label": "referential",
+    "as_of": "2026",
+    "source_url": "provider price lists (blended)"
+   },
+   "licence": "open-weight"
+  },
+  {
+   "id": "gpt",
+   "name": "GPT-class (proprietary)",
+   "total_params_b": null,
+   "active_params_b": null,
+   "weight_bytes_per_param": 1.0,
+   "kv_bytes_per_token": 0.7,
+   "market_price_usd_per_1m_tokens": {
+    "value": 5.0,
+    "label": "referential",
+    "as_of": "2026",
+    "source_url": "provider price lists (blended)"
+   },
+   "licence": "proprietary"
+  },
+  {
+   "id": "claude",
+   "name": "Claude-class (proprietary)",
+   "total_params_b": null,
+   "active_params_b": null,
+   "weight_bytes_per_param": 1.0,
+   "kv_bytes_per_token": 0.7,
+   "market_price_usd_per_1m_tokens": {
+    "value": 6.0,
+    "label": "referential",
+    "as_of": "2026",
+    "source_url": "provider price lists (blended)"
+   },
+   "licence": "proprietary"
+  },
+  {
+   "id": "gemini",
+   "name": "Gemini-class (proprietary)",
+   "total_params_b": null,
+   "active_params_b": null,
+   "weight_bytes_per_param": 1.0,
+   "kv_bytes_per_token": 0.7,
+   "market_price_usd_per_1m_tokens": {
+    "value": 5.0,
+    "label": "referential",
+    "as_of": "2026",
+    "source_url": "provider price lists (blended)"
+   },
+   "licence": "proprietary"
+  }
+ ]
+}

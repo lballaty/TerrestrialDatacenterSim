@@ -1,0 +1,57 @@
+{
+ "schema": "terrestrial-leadtimes/0.8",
+ "generated": "2026-09-05",
+ "note": "Long-lead equipment baselines (§14.4), 2026 order-book reporting.",
+ "records": [
+  {
+   "id": "transformer",
+   "name": "HV transformer (≥100 MVA)",
+   "lead_months": {
+    "value": 30,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 market reporting"
+   }
+  },
+  {
+   "id": "switchgear",
+   "name": "MV switchgear",
+   "lead_months": {
+    "value": 14,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 market reporting"
+   }
+  },
+  {
+   "id": "chiller",
+   "name": "Chillers / CDUs",
+   "lead_months": {
+    "value": 10,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 market reporting"
+   }
+  },
+  {
+   "id": "ups",
+   "name": "UPS / BESS",
+   "lead_months": {
+    "value": 9,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 market reporting"
+   }
+  },
+  {
+   "id": "hbm",
+   "name": "HBM / DRAM / SSD",
+   "lead_months": {
+    "value": 9,
+    "label": "baseline",
+    "as_of": "2026-09",
+    "note": "2026 market reporting"
+   }
+  }
+ ]
+}

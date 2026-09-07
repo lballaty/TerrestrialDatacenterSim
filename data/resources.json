@@ -1,0 +1,37 @@
+{
+ "schema": "terrestrial-resources/0.7",
+ "generated": "2026-09-05",
+ "note": "Site resource layer seed (Layer A stub): solar/wind capacity factors, geothermal potential class (0-3), gas access (1/0), contractable hydro/plant MW, nuclear policy (1/0), gas price. Mirrors the embedded values in index.html; replace with grid-derived data when the resource bundles are built.",
+ "records": [
+  {
+   "id": "US-VA"
+  },
+  {
+   "id": "DE-HE"
+  },
+  {
+   "id": "IE"
+  },
+  {
+   "id": "SE"
+  },
+  {
+   "id": "IS"
+  },
+  {
+   "id": "AE"
+  },
+  {
+   "id": "SG"
+  },
+  {
+   "id": "ZA"
+  },
+  {
+   "id": "BR-SP"
+  },
+  {
+   "id": "AU-NSW"
+  }
+ ]
+}

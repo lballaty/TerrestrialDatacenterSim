@@ -1,0 +1,700 @@
+{
+ "schema": "terrestrial-platforms/0.8",
+ "generated": "2026-09-05",
+ "note": "Compute platform catalog mirrored from index.html v0.8. Costs/leads/residuals are baselines; TDP/accelerator counts from vendor datasheets. Cloud-only rows (tpu,trn3) carry zero purchase cost and are lease-only.",
+ "records": [
+  {
+   "id": "gb300",
+   "name": "NVIDIA GB300 NVL72",
+   "granularity": "rack",
+   "accelerators_per_unit": 72,
+   "tdp_kw": {
+    "value": 135.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "vendor datasheet"
+   },
+   "peak_kw": 155.0,
+   "hbm_gb_per_accelerator": 288,
+   "unit_cost_usd_m": {
+    "value": 4.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "list/estimate; GB300 anchor $4M"
+   },
+   "cooling": "dlc",
+   "lead_months": {
+    "value": 14,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "2026 reporting"
+   },
+   "earliest_availability_year": {
+    "value": 2000,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "first units"
+   },
+   "software_maturity_factor": {
+    "value": 1.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "derates derived throughput"
+   },
+   "export_status": "unrestricted",
+   "residual_pct_12_24_36_48_60": {
+    "cons": [
+     75,
+     55,
+     38,
+     26,
+     16
+    ],
+    "mid": [
+     82,
+     66,
+     50,
+     37,
+     26
+    ],
+    "opt": [
+     90,
+     78,
+     64,
+     50,
+     38
+    ]
+   }
+  },
+  {
+   "id": "b300",
+   "name": "NVIDIA B300 HGX server",
+   "granularity": "server",
+   "accelerators_per_unit": 8,
+   "tdp_kw": {
+    "value": 14.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "vendor datasheet"
+   },
+   "peak_kw": 16.0,
+   "hbm_gb_per_accelerator": 288,
+   "unit_cost_usd_m": {
+    "value": 0.42,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "list/estimate; GB300 anchor $4M"
+   },
+   "cooling": "dlc",
+   "lead_months": {
+    "value": 12,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "2026 reporting"
+   },
+   "earliest_availability_year": {
+    "value": 2000,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "first units"
+   },
+   "software_maturity_factor": {
+    "value": 1.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "derates derived throughput"
+   },
+   "export_status": "unrestricted",
+   "residual_pct_12_24_36_48_60": {
+    "cons": [
+     74,
+     54,
+     37,
+     25,
+     15
+    ],
+    "mid": [
+     81,
+     65,
+     49,
+     36,
+     25
+    ],
+    "opt": [
+     89,
+     77,
+     63,
+     49,
+     37
+    ]
+   }
+  },
+  {
+   "id": "mi355x",
+   "name": "AMD MI355X server",
+   "granularity": "server",
+   "accelerators_per_unit": 8,
+   "tdp_kw": {
+    "value": 12.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "vendor datasheet"
+   },
+   "peak_kw": 14.0,
+   "hbm_gb_per_accelerator": 288,
+   "unit_cost_usd_m": {
+    "value": 0.3,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "list/estimate; GB300 anchor $4M"
+   },
+   "cooling": "dlc",
+   "lead_months": {
+    "value": 10,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "2026 reporting"
+   },
+   "earliest_availability_year": {
+    "value": 2000,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "first units"
+   },
+   "software_maturity_factor": {
+    "value": 0.85,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "derates derived throughput"
+   },
+   "export_status": "unrestricted",
+   "residual_pct_12_24_36_48_60": {
+    "cons": [
+     65,
+     45,
+     30,
+     19,
+     11
+    ],
+    "mid": [
+     74,
+     55,
+     39,
+     27,
+     18
+    ],
+    "opt": [
+     83,
+     66,
+     50,
+     37,
+     26
+    ]
+   }
+  },
+  {
+   "id": "mi400",
+   "name": "AMD MI400 \"Helios\" rack",
+   "granularity": "rack",
+   "accelerators_per_unit": 72,
+   "tdp_kw": {
+    "value": 140.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "vendor datasheet"
+   },
+   "peak_kw": 160.0,
+   "hbm_gb_per_accelerator": 432,
+   "unit_cost_usd_m": {
+    "value": 3.6,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "list/estimate; GB300 anchor $4M"
+   },
+   "cooling": "dlc",
+   "lead_months": {
+    "value": 18,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "2026 reporting"
+   },
+   "earliest_availability_year": {
+    "value": 2026,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "first units"
+   },
+   "software_maturity_factor": {
+    "value": 0.8,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "derates derived throughput"
+   },
+   "export_status": "unrestricted",
+   "residual_pct_12_24_36_48_60": {
+    "cons": [
+     66,
+     46,
+     31,
+     20,
+     12
+    ],
+    "mid": [
+     75,
+     56,
+     40,
+     28,
+     19
+    ],
+    "opt": [
+     84,
+     67,
+     51,
+     38,
+     27
+    ]
+   }
+  },
+  {
+   "id": "gaudi3",
+   "name": "Intel Gaudi 3 server",
+   "granularity": "server",
+   "accelerators_per_unit": 8,
+   "tdp_kw": {
+    "value": 8.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "vendor datasheet"
+   },
+   "peak_kw": 9.0,
+   "hbm_gb_per_accelerator": 128,
+   "unit_cost_usd_m": {
+    "value": 0.16,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "list/estimate; GB300 anchor $4M"
+   },
+   "cooling": "air",
+   "lead_months": {
+    "value": 8,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "2026 reporting"
+   },
+   "earliest_availability_year": {
+    "value": 2000,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "first units"
+   },
+   "software_maturity_factor": {
+    "value": 0.75,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "derates derived throughput"
+   },
+   "export_status": "unrestricted",
+   "residual_pct_12_24_36_48_60": {
+    "cons": [
+     55,
+     35,
+     22,
+     13,
+     7
+    ],
+    "mid": [
+     64,
+     44,
+     29,
+     19,
+     11
+    ],
+    "opt": [
+     73,
+     54,
+     38,
+     26,
+     17
+    ]
+   }
+  },
+  {
+   "id": "cs3",
+   "name": "Cerebras CS-3",
+   "granularity": "rack",
+   "accelerators_per_unit": 1,
+   "tdp_kw": {
+    "value": 23.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "vendor datasheet"
+   },
+   "peak_kw": 25.0,
+   "hbm_gb_per_accelerator": 44,
+   "unit_cost_usd_m": {
+    "value": 2.5,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "list/estimate; GB300 anchor $4M"
+   },
+   "cooling": "dlc",
+   "lead_months": {
+    "value": 16,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "2026 reporting"
+   },
+   "earliest_availability_year": {
+    "value": 2000,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "first units"
+   },
+   "software_maturity_factor": {
+    "value": 0.7,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "derates derived throughput"
+   },
+   "export_status": "unrestricted",
+   "residual_pct_12_24_36_48_60": {
+    "cons": [
+     60,
+     40,
+     26,
+     16,
+     9
+    ],
+    "mid": [
+     70,
+     50,
+     34,
+     23,
+     14
+    ],
+    "opt": [
+     80,
+     62,
+     46,
+     33,
+     23
+    ]
+   }
+  },
+  {
+   "id": "groq",
+   "name": "Groq LPU rack",
+   "granularity": "rack",
+   "accelerators_per_unit": 576,
+   "tdp_kw": {
+    "value": 60.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "vendor datasheet"
+   },
+   "peak_kw": 70.0,
+   "hbm_gb_per_accelerator": 0,
+   "unit_cost_usd_m": {
+    "value": 2.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "list/estimate; GB300 anchor $4M"
+   },
+   "cooling": "dlc",
+   "lead_months": {
+    "value": 14,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "2026 reporting"
+   },
+   "earliest_availability_year": {
+    "value": 2000,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "first units"
+   },
+   "software_maturity_factor": {
+    "value": 0.7,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "derates derived throughput"
+   },
+   "export_status": "unrestricted",
+   "residual_pct_12_24_36_48_60": {
+    "cons": [
+     55,
+     35,
+     22,
+     13,
+     7
+    ],
+    "mid": [
+     65,
+     45,
+     30,
+     20,
+     12
+    ],
+    "opt": [
+     75,
+     56,
+     40,
+     28,
+     19
+    ]
+   }
+  },
+  {
+   "id": "sn40",
+   "name": "SambaNova SN40L rack",
+   "granularity": "rack",
+   "accelerators_per_unit": 16,
+   "tdp_kw": {
+    "value": 40.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "vendor datasheet"
+   },
+   "peak_kw": 48.0,
+   "hbm_gb_per_accelerator": 0,
+   "unit_cost_usd_m": {
+    "value": 1.8,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "list/estimate; GB300 anchor $4M"
+   },
+   "cooling": "dlc",
+   "lead_months": {
+    "value": 14,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "2026 reporting"
+   },
+   "earliest_availability_year": {
+    "value": 2000,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "first units"
+   },
+   "software_maturity_factor": {
+    "value": 0.7,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "derates derived throughput"
+   },
+   "export_status": "unrestricted",
+   "residual_pct_12_24_36_48_60": {
+    "cons": [
+     55,
+     35,
+     22,
+     13,
+     7
+    ],
+    "mid": [
+     65,
+     45,
+     30,
+     20,
+     12
+    ],
+    "opt": [
+     75,
+     56,
+     40,
+     28,
+     19
+    ]
+   }
+  },
+  {
+   "id": "ascend",
+   "name": "Huawei Ascend 910C / CloudMatrix",
+   "granularity": "rack",
+   "accelerators_per_unit": 384,
+   "tdp_kw": {
+    "value": 145.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "vendor datasheet"
+   },
+   "peak_kw": 170.0,
+   "hbm_gb_per_accelerator": 128,
+   "unit_cost_usd_m": {
+    "value": 3.2,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "list/estimate; GB300 anchor $4M"
+   },
+   "cooling": "dlc",
+   "lead_months": {
+    "value": 12,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "2026 reporting"
+   },
+   "earliest_availability_year": {
+    "value": 2000,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "first units"
+   },
+   "software_maturity_factor": {
+    "value": 0.75,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "derates derived throughput"
+   },
+   "export_status": "region-restricted",
+   "residual_pct_12_24_36_48_60": {
+    "cons": [
+     60,
+     40,
+     26,
+     16,
+     9
+    ],
+    "mid": [
+     70,
+     50,
+     34,
+     23,
+     14
+    ],
+    "opt": [
+     80,
+     62,
+     46,
+     33,
+     23
+    ]
+   }
+  },
+  {
+   "id": "tpu",
+   "name": "Google TPU Ironwood (cloud-only)",
+   "granularity": "cloud",
+   "accelerators_per_unit": 256,
+   "tdp_kw": {
+    "value": 100.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "vendor datasheet"
+   },
+   "peak_kw": 120.0,
+   "hbm_gb_per_accelerator": 192,
+   "unit_cost_usd_m": {
+    "value": 0.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "list/estimate; GB300 anchor $4M"
+   },
+   "cooling": "dlc",
+   "lead_months": {
+    "value": 0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "2026 reporting"
+   },
+   "earliest_availability_year": {
+    "value": 2000,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "first units"
+   },
+   "software_maturity_factor": {
+    "value": 0.9,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "derates derived throughput"
+   },
+   "export_status": "cloud-only",
+   "residual_pct_12_24_36_48_60": {
+    "cons": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "mid": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "opt": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "trn3",
+   "name": "AWS Trainium 3 (cloud-only)",
+   "granularity": "cloud",
+   "accelerators_per_unit": 16,
+   "tdp_kw": {
+    "value": 20.0,
+    "label": "referential",
+    "as_of": "2025",
+    "source_url": "vendor datasheet"
+   },
+   "peak_kw": 24.0,
+   "hbm_gb_per_accelerator": 96,
+   "unit_cost_usd_m": {
+    "value": 0.0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "list/estimate; GB300 anchor $4M"
+   },
+   "cooling": "dlc",
+   "lead_months": {
+    "value": 0,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "2026 reporting"
+   },
+   "earliest_availability_year": {
+    "value": 2000,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "first units"
+   },
+   "software_maturity_factor": {
+    "value": 0.85,
+    "label": "baseline",
+    "as_of": "2026",
+    "note": "derates derived throughput"
+   },
+   "export_status": "cloud-only",
+   "residual_pct_12_24_36_48_60": {
+    "cons": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "mid": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "opt": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  }
+ ]
+}

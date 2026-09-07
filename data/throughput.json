@@ -1,0 +1,9 @@
+{
+ "schema": "terrestrial-throughput/0.8",
+ "generated": "2026-09-05",
+ "note": "Referential tokens/s/MW cells for specific platform|model pairs (else the tool derives). Replace/extend from MLPerf Inference and vendor benchmarks.",
+ "cells": {
+  "gb300|llama4mav": 2800000,
+  "gb300|ds v3": 2600000
+ }
+}
