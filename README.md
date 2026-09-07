@@ -45,7 +45,8 @@ The page runs from its embedded presets with no network. On GitHub Pages the wor
 | `data/carbon.json` | `scripts/build_carbon.py` | Ember yearly electricity data (CC BY 4.0) | monthly |
 | `data/ixp.json` | `scripts/build_ixp.py` | PeeringDB | monthly |
 | `data/climate_grid.json` | `scripts/build_climate_grid.py` | ERA5 via Copernicus CDS (needs a free `CDS_TOKEN` secret) | when the script changes |
-| `data/power_options.json`, `platforms.json`, `models.json`, `leadtimes.json` | hand-curated, committed | per-record source URLs | as changed |
+| `data/resources.json` | hand-curated, committed | Global Solar/Wind Atlas, geothermal atlases, per-record notes | as changed |
+| `data/power_options.json` | hand-curated, committed | Lazard LCOE+, NREL ATB, IEA | as changed |
 
 Open-Meteo is used only for the optional exact-point refinement button, never for the grid: its call weighting makes a global hourly pull impractical on the free tier (spec §2.1 #8).
 
@@ -90,4 +91,4 @@ Lenovo GB300 NVL72 · NVIDIA and MLPerf inference results · ASHRAE design condi
 
 ## Licence
 
-Choose one before publishing (MIT is the usual fit). ERA5 is under the Copernicus licence, Ember under CC BY 4.0, PeeringDB under its terms; all require attribution, which the tool shows.
+Licensed under the MIT License (see LICENSE). ERA5 is under the Copernicus licence, Ember under CC BY 4.0, PeeringDB under its terms; all require attribution, which the tool shows.

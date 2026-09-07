@@ -1,6 +1,7 @@
 # Terrestrial AI Data Center Model — Implementation Plan
 
-**Plan revision 1.0 — 2026-09-05 — Status: Draft for review**
+**Plan revision 1.1 — 2026-09-05 — Status: Draft for review**
+Rev 1.1 adds WP9 (graphical models) and WP10 (floating/underwater/mountain-pumped-hydro siting archetypes) to the queue, after the testing files.
 Governs: `index.html` from v0.4 onward, `data/*.json`, `scripts/`, spec Rev 0.7 onward.
 Companion: `terrestrial_datacenter_model_specification.md` (what the model is). This document says how it gets built, in what order, and when each step is done.
 
@@ -96,6 +97,32 @@ The file stays single and dependency-free, but its script is organised in named 
 
 **Files:** `terrestrial-test-cases.json` (manifest: every control with kind, tab, validity rules, expected direction; readouts; suites; reasonableness rules), `terrestrial-reconcile.js` (DOM tags vs manifest, wired into self-tests), `terrestrial-test-plan.md`, indexes regenerated from the DOM. README and spec final sync. Licence chosen (your call). GitHub Pages workflow first live run; fix whatever the Ember/PeeringDB/CDS scripts break on.
 
+### WP9 — Graphical models (visual subsystem) (v1.1)
+
+Parity with the orbital tool's visual layer, which this app deferred. Same house style, hand-rolled canvas/SVG (no map/3D library unless a later decision adds one), mobile-safe, pop-out windows following the parent scenario via postMessage as the orbital tool does.
+
+**Views**
+1. **Location zoom.** Pin on a coarse world map (reuse the orbital tool's Natural Earth 110m coastline asset) that zooms from global → region → site, driven by the Site tab lat/lon. Overlays toggled from the resolved layers: grid-carbon shading, water-stress, seismic/flood class, nearest IXPs, and (when present) the climate cell.
+2. **Above-site view (plan).** A top-down schematic of the facility footprint at the current design: white-space halls, MEP/cooling yards, substation, on-site generation and BESS blocks, water/heat-reuse plant, fibre entry, laid out to the computed `siteA`/`grossA` with a scale bar. Blocks sized from the model (units, cooling architecture, mix rows), not fixed art.
+3. **Datacenter build-up (assembly).** A staged section/exploded view showing how the facility "comes together" by design choice: shell → power path (grid/mix) → cooling architecture (air/RDHx/DLC/immersion drawn differently) → racks/rows → network. Steps gated on the timeline so the drawing reflects energisation phase (campus) and the binding constraint.
+4. **Scenario-specific renderings** for the WP10 siting types (below).
+
+**Data-driven fidelity rule** (as orbital §3.5): every drawn dimension traces to a model value; a caption states scale and any clamp. The visual never feeds back into the calculation.
+
+**Tests:** extend the manifest with a `render_surfaces` registry and view-selector/pop-out buttons; S6-style suite asserting each view renders without error and redraws on input; tag every new control. No pixel oracle (brittle) — structural assertions only.
+
+### WP10 — Non-standard siting scenarios (v1.2)
+
+New site *archetypes* selectable on the Site tab, each adding its own inputs, power-mix eligibility, cost and risk terms, and a WP9 rendering. All bottom-up and labelled; each is a scenario the model can price, not a claim it is sensible.
+
+**10a. Floating / offshore (surface).** Barge or platform hull instead of land+shell. Adds: hull/platform $/MW (replaces land+site-prep+shell), station-keeping/mooring, marine construction index, corrosion/maintenance uplift, motion-tolerant cooling (seawater once-through or closed loop → very low WUE, new heat-rejection term), subsea power and fibre landing distance and cost, cyclone/wave downtime, jurisdiction = flag state / EEZ (new Layer B edge cases). Power: seawater cooling sets κ near air-free; grid via subsea cable or on-board generation.
+**10b. Submerged / underwater.** Sealed vessel on the seabed (Natick-style). Adds: pressure-vessel $/MW, deployment/recovery vessel cost and cadence (no in-situ service → whole-vessel refresh, ties to §13.2 granularity), nitrogen/sealed reliability factor (lower failure), seawater heat rejection (WUE ~0), cable length to shore, recovery risk. Compute refresh = vessel swap; availability model changes (no hands-on repair).
+**10c. Mountain / pumped-hydro-coupled.** Site paired with a pumped-storage loop: upper and lower reservoir, elevation head, usable volume → stored MWh; pump/turbine $/MW and round-trip efficiency; solar or wind (from the resource layer) charges by pumping uphill. Adds a storage option to the power mix that is **energy-limited by reservoir volume and head**, not just MWh nameplate: firm hours = ρghV·η / P. Terrain/civil cost for reservoirs, water rights, environmental permitting (longer, higher risk). This makes the §8 dispatch genuinely energy-constrained and is the most interesting power case.
+
+**Model touch-points:** each archetype extends the CAPEX stack (§10.2) with its structure term replacing land/shell, adds power-mix rows and eligibility (seawater cooling, pumped hydro), adds risk-register rows (marine, recovery, dam), and sets cooling defaults (seawater → near-zero WUE and low κ). Parity mode and all anchors remain reachable by selecting the ordinary land archetype.
+
+**Tests:** each archetype gets a smoke case (selects, computes, no NaN), a reasonableness rule (e.g. pumped-hydro firm hours = ρghVη/P within tolerance; submerged WUE ≈ 0), and its rendering asserted in the WP9 suite.
+
 ## 4. Order and estimated size
 
 | WP | Version | New inputs | Approx. lines added | Depends on |
@@ -107,6 +134,8 @@ The file stays single and dependency-free, but its script is organised in named 
 | 7c | 0.9 | ~30 | 400 | — |
 | 7d | 1.0 | ~15 | 500 | 6, 7b |
 | 8 | 1.0.x | 0 | manifest | all |
+| 9 | 1.1 | ~10 + views | 700 | 6, 7d (drawings read final model state) |
+| 10 | 1.2 | ~30 | 600 | 9 (each archetype needs its rendering) |
 
 `index.html` will reach roughly 3,500 lines at v1.0 — comparable to the orbital tool. If it becomes unwieldy the fallback is a second file for curated catalogs loaded at start; the single-file default stands unless you say otherwise.
 
@@ -135,6 +164,8 @@ The file stays single and dependency-free, but its script is organised in named 
 | 4 | Residual bands for GB300 with no history? | Hopper curve shifted 12 months later; labelled baseline. |
 | 5 | Regression anchor after WP6 re-anchoring: keep straight-line as the reported default or the mid residual curve? | Mid residual curve as default; straight-line kept for parity only. |
 | 6 | Licence for the repo | MIT, as the orbital README suggests. |
+| 7 | Map for the location-zoom view (WP9): hand-rolled canvas on the orbital Natural Earth asset, or a tile library (Leaflet)? | Hand-rolled, zero-dependency, consistent with the orbital tool; tiles only if street-level zoom is wanted. |
+| 8 | Underwater/floating jurisdiction resolution (WP10): flag state, coastal state, or nearest-landfall? | Nearest coastal state's Layer B with a marine-uplift flag, overridable; a full maritime-law model is out of scope. |
 
 ## 7. Regression anchors (must not move without a spec row)
 
@@ -143,7 +174,7 @@ The file stays single and dependency-free, but its script is organised in named 
 | Orbital parity, stub inputs | $0.2473 / 1M tokens (±0.2%) | v0.2 |
 | §10.2 composition, US avg, Tier III, air, grid-only | $12.14M / MW IT (±5%) | v0.2 |
 | LCOE closed form, recips 90% CF, $40 gas, 8% | $111.7 / MWh | v0.4 |
-| Base US-VA, 40 MW DLC Tier III, grid template | $0.234 / 1M tokens; TTP 42 mo; PUE 1.144; facility $12.21M/MW | v0.4 (re-anchored in WP6) |
+| Base US-VA, 40 MW DLC Tier III, grid template, GB300×Llama4-Maverick, mid residual | **$0.161 / 1M tokens**; TTP 42 mo; PUE 1.144; facility $12.21M/MW | re-anchored at v0.8 (WP6); was $0.234 under straight-line |
 
 ## 8. Sanity table (re-run every delivery)
 
@@ -153,6 +184,11 @@ Ten sites × grid template: $/1M tokens, CAPEX/MW, TTP and binding term, PUE, gC
 
 Version · files changed · what was added (inputs, outputs, tests) · anchors and sanity table · standing decisions applied · open questions resolved · review flags · request for phone check.
 
-## 10. Out of scope for this plan
+## 11. Queued (added 2026-09-05, build after testing files)
+
+- **WP9 graphical models** — location zoom, above-site plan, build-up/assembly view, per-scenario renderings; parity with the orbital visual subsystem this app deferred.
+- **WP10 siting archetypes** — floating/offshore, submerged/underwater, and mountain pumped-hydro-coupled sites, each with its own cost/power/risk terms and rendering. The pumped-hydro case turns the §8 dispatch into a genuinely energy-limited model (firm hours from reservoir head and volume).
+
+## 12. Out of scope for this plan
 
 Hourly dispatch and weather-year sampling; sub-national polygons; Monte Carlo risk (Representation B); training workloads; embodied carbon; tax structuring beyond the financing block. Each is a later plan revision if wanted.

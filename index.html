@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Terrestrial AI Data Center Siting and Economics Model (v0.4)</title>
+<title>Terrestrial AI Data Center Siting and Economics Model (v0.8)</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#151b23;--panel2:#1b2330;--panel3:#10161e;
@@ -118,6 +118,7 @@ code{background:#0d1117;padding:2px 4px;border-radius:4px}
         <button data-p="compute">Compute</button>
         <button data-p="econ">Lifecycle</button>
         <button data-p="time">Timeline</button>
+        <button data-p="visuals">Visuals</button>
       </div>
 
       <div class="pane active" id="site">
@@ -138,6 +139,18 @@ code{background:#0d1117;padding:2px 4px;border-radius:4px}
           <label>Scale regime</label><select id="scale"><option value="hall">Single hall (20–50 MW)</option><option value="campus">Campus (100 MW – 1 GW)</option></select>
           <label>Target productive IT, MW</label><input id="mw" type="number" min="1" step="1" value="40">
           <label>Redundancy tier</label><select id="tier"><option value="2">Tier II — 99.74%, N</option><option value="3" selected>Tier III — 99.98%, N+1</option><option value="4">Tier IV — 99.995%, 2N</option></select>
+          <label>Siting archetype</label><select id="arch"><option value="land" selected>Land (standard)</option><option value="float">Floating / offshore</option><option value="sub">Submerged / underwater</option><option value="mtn">Mountain + pumped hydro</option></select>
+          <div class="note" id="archNote">Standard land build. Selecting an archetype replaces land+shell with its structure term, changes cooling and power eligibility, and adds its own risks. All bottom-up and labelled; each is a scenario the model can price, not a claim it is optimal.</div>
+          <div id="archInputs" style="display:none">
+            <label>Structure $/MW IT (replaces land+shell) <span class="badge baseline">baseline</span></label><input id="archStruct" type="number" step="0.5" value="9">
+            <label>Structure maintenance uplift, %/yr <span class="badge baseline">baseline</span></label><input id="archMaint" type="number" step="0.5" value="1">
+            <label>Marine/seabed power+fibre landing, km <span class="badge baseline">baseline</span></label><input id="archLandKm" type="number" step="5" value="20">
+            <label>Weather/recovery downtime, %/yr <span class="badge baseline">baseline</span></label><input id="archDown" type="number" step="0.1" value="0.5">
+            <label>Pumped-hydro head, m <span class="badge baseline">baseline</span></label><input id="phHead" type="number" step="10" value="400">
+            <label>Pumped-hydro usable reservoir, thousand m³ <span class="badge baseline">baseline</span></label><input id="phVol" type="number" step="50" value="500">
+            <label>Pumped-hydro round-trip efficiency <span class="badge baseline">baseline</span></label><input id="phEff" type="number" step="0.01" value="0.80">
+            <label>Reservoir + civil works, $M <span class="badge baseline">baseline</span></label><input id="phCivil" type="number" step="5" value="60">
+          </div>
           <div class="note">Presets seed the location-dependent fields; every one of them is editable, and an edited field is relabelled scenario. Save the current set under a name to keep it in this browser, export it as a jurisdiction-style JSON record to share or commit to <code>data/jurisdictions.json</code>, or import one. On a served origin the curated file replaces the embedded presets. Map pin and 1° climate grid arrive with the data layers.</div>
         </div>
       </div>
@@ -220,20 +233,35 @@ code{background:#0d1117;padding:2px 4px;border-radius:4px}
       </div>
 
       <div class="pane" id="compute">
-        <h2>Compute (GB300 NVL72 anchor row)</h2>
+        <h2>Compute platform &amp; model</h2>
         <div class="controls">
-          <label>Unit TDP, kW <span class="badge anchor">anchor</span></label><input id="rkw" type="number" step="1" value="135">
+          <label>Compute platform <span class="badge ref" id="lab_platform">referential</span></label><select id="platform"></select>
+          <div class="note" id="platformNote">—</div>
+          <label>Served model <span class="badge ref" id="lab_model">referential</span></label><select id="model"></select>
+          <label>Operator regime</label><select id="regime"><option value="openweight" selected>Third-party open-weight provider</option><option value="ownmodel">Frontier lab / own model</option><option value="lessor">Neocloud / capacity lessor</option><option value="enterprise">Enterprise private inference</option></select>
+          <div class="note" id="regimeNote">—</div>
+          <label>Unit TDP, kW <span class="badge anchor" id="lab_rkw">anchor</span></label><input id="rkw" type="number" step="1" value="135">
           <label>Accelerators / unit <span class="badge anchor">anchor</span></label><input id="gpus" type="number" step="1" value="72">
-          <label>Compute cost / unit, $M <span class="badge baseline">baseline</span></label><input id="rcost" type="number" step="0.1" value="4">
+          <label>HBM per accelerator, GB <span class="badge anchor">anchor</span></label><input id="hbm" type="number" step="8" value="288">
+          <label>Compute cost / unit, $M <span class="badge baseline" id="lab_rcost">baseline</span></label><input id="rcost" type="number" step="0.1" value="4">
+          <label>Software maturity factor (0.6–1.0) <span class="badge baseline">baseline</span></label><input id="maturity" type="number" step="0.05" min="0.6" max="1" value="1.0">
+          <label>Throughput basis</label><select id="tpsMode"><option value="auto" selected>Matrix / derived (platform × model)</option><option value="manual">Manual tokens/s/MW</option></select>
+          <label>Inference throughput, tokens/s/MW <span class="badge derived" id="lab_tpsmw">derived</span></label><input id="tpsmw" type="number" step="100000" value="2800000">
           <label>IT overhead beyond TDP, % <span class="badge baseline">baseline</span></label><input id="itoh" type="number" step="1" value="10">
           <label>Installed spare capacity, % <span class="badge scenario">scenario</span></label><input id="spare" type="number" step="1" value="5">
           <label>Rack footprint incl. aisle share, m² <span class="badge baseline">baseline</span></label><input id="rackm2" type="number" step="0.5" value="4.5">
-          <label>Inference throughput, tokens/s/MW <span class="badge anchor">anchor</span></label><input id="tpsmw" type="number" step="100000" value="2800000">
           <label>Utilization, % <span class="badge scenario">scenario</span></label><input id="util" type="number" step="1" value="75">
           <label>Electrical load factor L = a + (1−a)·U; a <span class="badge baseline">baseline</span></label><input id="idle" type="number" step="0.05" value="0.5">
           <label>Compute refresh interval, years <span class="badge scenario">scenario</span></label><input id="refresh" type="number" step="1" value="3">
+          <label>Refresh strategy</label><select id="refreshStrat"><option value="hold" selected>Hold to refresh, resell at curve</option><option value="rotate">Rotate &amp; resell early</option><option value="line">Straight-line salvage (legacy / parity)</option></select>
+          <label>Resell month (rotate) <span class="badge scenario">scenario</span></label><input id="sellMonth" type="number" step="3" value="24">
+          <label>Residual band</label><select id="residualBand"><option value="cons">Conservative</option><option value="mid" selected>Mid</option><option value="opt">Optimistic</option></select>
+          <label>Accelerator import duty, % <span class="badge ref" id="lab_duty">referential</span></label><input id="dutyAccel" type="number" step="1" value="0">
+          <label>Model licence fee, $/1M tokens <span class="badge baseline">baseline</span></label><input id="licenceFee" type="number" step="0.01" value="0">
+          <label>R&amp;D allocation (own model), $/1M tokens <span class="badge baseline">baseline</span></label><input id="rdAlloc" type="number" step="0.01" value="0">
           <label>Installed units (derived) <span class="badge derived">derived</span></label><output id="unitsOut">—</output>
-          <div class="note">Platform and model catalogs (§4a–4b), the throughput matrix, cohorts and cascade (§13.4) arrive in step 6. The anchor row and single throughput cell are what the orbital model uses, so both tools price the same compute.</div>
+          <label>Throughput (derived) <span class="badge derived">derived</span></label><output id="tpsOut">—</output>
+          <div class="note">Platform sets kW, accelerators, HBM, cost, cooling need, granularity, residual curve and export status; every field stays editable (edits relabel scenario). Throughput comes from the matrix where a referential cell exists, else from memory-per-replica × per-accelerator rate × maturity. Proprietary models are lease-only (lessor regime).</div>
         </div>
       </div>
 
@@ -270,6 +298,18 @@ code{background:#0d1117;padding:2px 4px;border-radius:4px}
           <label>Orbital comparator T_deploy, months <span class="badge scenario">scenario</span></label><input id="orbT" type="number" step="1" value="30">
           <div class="note">Full long-lead list, supply mix timing and risk register (§12a, §14.4) arrive in steps 5 and 7.</div>
         </div>
+      <div class="pane" id="visuals">
+        <h2>Graphical models</h2>
+        <div class="controls">
+          <label>View</label><select id="vizView"><option value="zoom">Location zoom</option><option value="plan">Above-site plan</option><option value="build">Datacenter build-up</option><option value="scene">Siting scene (archetype)</option></select>
+          <label>Location zoom level</label><input id="vizZoom" type="range" min="0" max="2" step="1" value="0"><div class="note" id="vizZoomLbl">Global</div>
+          <label>Map overlay</label><select id="vizOverlay"><option value="none">none</option><option value="carbon">grid carbon</option><option value="water">water stress</option><option value="hazard">seismic / flood</option></select>
+          <label>Build-up stage</label><input id="vizStage" type="range" min="1" max="5" step="1" value="5"><div class="note" id="vizStageLbl">All stages</div>
+          <div class="note">Every drawn dimension traces to a model value; the caption states scale and any clamp. The drawing never feeds back into the calculation. Pop-out mirrors the current scenario.</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button id="vizPop" style="min-height:32px">⧉ Pop-out this view</button></div>
+      </div>
+
       </div>
     </section>
 
@@ -316,6 +356,11 @@ code{background:#0d1117;padding:2px 4px;border-radius:4px}
         <div class="muted" id="tornadoNote" style="font-size:12px">—</div>
       </div>
 
+      <div class="panel" id="vizPanel">
+        <div class="row"><h2 style="margin:0" id="vizTitle">Graphical model</h2><span class="muted" id="vizCaption" style="font-size:12px">—</span></div>
+        <svg id="vizSvg" class="chart" viewBox="0 0 760 460" xmlns="http://www.w3.org/2000/svg" style="margin-top:8px"></svg>
+      </div>
+
       <div class="panel">
         <h2>Location provenance</h2>
         <div class="table"><table><thead><tr><th>Input</th><th>Value</th><th>Label</th><th>Source</th><th>As of</th></tr></thead><tbody id="provRows"></tbody></table></div>
@@ -327,9 +372,14 @@ code{background:#0d1117;padding:2px 4px;border-radius:4px}
 
 <footer>
   <strong>Model integrity notes</strong><br>
+  <strong>v0.8 (WP6 first pass):</strong> compute platform catalog (11 rows: NVIDIA/AMD/Intel/Cerebras/Groq/SambaNova/Huawei + cloud-only TPU/Trainium), served-model catalog (9 open-weight + 3 proprietary), operator regime, throughput from a referential matrix or memory-per-replica derivation × maturity, refresh cost by rack/server/component granularity, three-band residual-value curves with hold vs rotate-and-resell, accelerator import duty, licence/R&D opex. Straight-line salvage retained for parity. <em>Base regression re-anchored</em> (residual mid band).<br>
+  <strong>v0.7 (WP3):</strong> data-layer loaders — on a served origin the tool now overlays curated <code>data/</code> files on the embedded presets: jurisdictions, power_options, carbon (Ember, by country), ixp (PeeringDB nearest-exchange distance) and resources; status line names what loaded. Offline it uses presets unchanged.<br>
+  <strong>v0.6 (WP10):</strong> siting archetypes — floating/offshore (hull replaces land+shell, seawater cooling WUE 0, subsea landing), submerged/underwater (pressure vessel, refresh = vessel swap), mountain + pumped hydro (energy-limited storage, firm hours = ρgHVη/P); each reshapes CAPEX, cooling, power eligibility, availability and risk, with a siting-scene rendering.<br>
+  <strong>v0.5 (WP9):</strong> graphical models — location zoom (global→region→site on the pin with grid-carbon/water/hazard overlays), above-site plan (footprint sized from the model), datacenter build-up (staged assembly by design); hand-rolled SVG on the orbital coastline asset, pop-out, tagged and self-tested.<br>
   <strong>v0.4 (step 5):</strong> generation option catalog (21 rows, §8a) with LCOE at the site, resource layer stub per site, supply mix with seven templates and a merit-order dispatch per operating year, firm-equivalent $/MWh feeding the spine, on-site generation capex in the stack, time-to-power from the mix as a candidate binding term, two new self-tests.<br>
   <strong>v0.3:</strong> custom sites (save in browser, export/import as jurisdiction-style JSON), curated <code>data/jurisdictions.json</code> replaces embedded presets on a served origin, lat/lon edits, <code>data-test-*</code> tags on every interactive element and readout, two new self-tests.<br>
   <strong>v0.2 (step 1–2):</strong> shell, input registry with type labels, location presets, derived PUE, composed CAPEX stack, itemised opex, straight-line compute salvage, time-to-power with named binding term, tornado, break-even, self-tests, specification viewer, responsive layout. Grid-only power; single compute row; no catalogs, demand, risk or cohorts yet.<br>
+  <strong>Base (v0.8):</strong> US-VA 40 MW DLC Tier III grid, GB300 × Llama 4 Maverick, mid residual band → $0.161/1M tokens (was $0.234 under straight-line; residual curves are now the default).<br>
   <strong>Parity:</strong> with the facility basis set to "single $M/MW", opex to "single %", manual PUE 1.3, tariff $80 flat, availability 99.5% manual, horizon 10, spares 10%, 1 MW productive and refresh 3, the spine reproduces the orbital model's terrestrial benchmark of $0.247 / 1M tokens (self-test).<br>
   <strong>Composition:</strong> the §10.2 stack at US-average, Tier III, air cooling composes to ≈ $12M / MW IT, the orbital stub's single figure (self-test).<br>
   <span id="footerNote"></span><br>
@@ -342,6 +392,70 @@ code{background:#0d1117;padding:2px 4px;border-radius:4px}
 const $=id=>document.getElementById(id);
 const YEARSEC=365.25*86400, C=299792458;
 let lastData=null;
+
+// ---------- WP6 compute platform / model / throughput catalogs (mirrored in data/*.json) ----------
+// residual curves: % of unit cost retained at 12/24/36/48/60 months, three bands
+const PLATFORMS=[
+ {id:'gb300',name:'NVIDIA GB300 NVL72',gran:'rack',acc:72,kw:135,peak:155,hbm:288,cost:4.0,cool:'dlc',lead:14,avail:2000,mat:1.0,exp:'unrestricted',res:{cons:[75,55,38,26,16],mid:[82,66,50,37,26],opt:[90,78,64,50,38]}},
+ {id:'b300',name:'NVIDIA B300 HGX server',gran:'server',acc:8,kw:14,peak:16,hbm:288,cost:0.42,cool:'dlc',lead:12,avail:2000,mat:1.0,exp:'unrestricted',res:{cons:[74,54,37,25,15],mid:[81,65,49,36,25],opt:[89,77,63,49,37]}},
+ {id:'mi355x',name:'AMD MI355X server',gran:'server',acc:8,kw:12,peak:14,hbm:288,cost:0.30,cool:'dlc',lead:10,avail:2000,mat:0.85,exp:'unrestricted',res:{cons:[65,45,30,19,11],mid:[74,55,39,27,18],opt:[83,66,50,37,26]}},
+ {id:'mi400',name:'AMD MI400 "Helios" rack',gran:'rack',acc:72,kw:140,peak:160,hbm:432,cost:3.6,cool:'dlc',lead:18,avail:2026,mat:0.8,exp:'unrestricted',res:{cons:[66,46,31,20,12],mid:[75,56,40,28,19],opt:[84,67,51,38,27]}},
+ {id:'gaudi3',name:'Intel Gaudi 3 server',gran:'server',acc:8,kw:8,peak:9,hbm:128,cost:0.16,cool:'air',lead:8,avail:2000,mat:0.75,exp:'unrestricted',res:{cons:[55,35,22,13,7],mid:[64,44,29,19,11],opt:[73,54,38,26,17]}},
+ {id:'cs3',name:'Cerebras CS-3',gran:'rack',acc:1,kw:23,peak:25,hbm:44,cost:2.5,cool:'dlc',lead:16,avail:2000,mat:0.7,exp:'unrestricted',res:{cons:[60,40,26,16,9],mid:[70,50,34,23,14],opt:[80,62,46,33,23]}},
+ {id:'groq',name:'Groq LPU rack',gran:'rack',acc:576,kw:60,peak:70,hbm:0,cost:2.0,cool:'dlc',lead:14,avail:2000,mat:0.7,exp:'unrestricted',res:{cons:[55,35,22,13,7],mid:[65,45,30,20,12],opt:[75,56,40,28,19]}},
+ {id:'sn40',name:'SambaNova SN40L rack',gran:'rack',acc:16,kw:40,peak:48,hbm:0,cost:1.8,cool:'dlc',lead:14,avail:2000,mat:0.7,exp:'unrestricted',res:{cons:[55,35,22,13,7],mid:[65,45,30,20,12],opt:[75,56,40,28,19]}},
+ {id:'ascend',name:'Huawei Ascend 910C / CloudMatrix',gran:'rack',acc:384,kw:145,peak:170,hbm:128,cost:3.2,cool:'dlc',lead:12,avail:2000,mat:0.75,exp:'region-restricted',res:{cons:[60,40,26,16,9],mid:[70,50,34,23,14],opt:[80,62,46,33,23]}},
+ {id:'tpu',name:'Google TPU Ironwood (cloud-only)',gran:'cloud',acc:256,kw:100,peak:120,hbm:192,cost:0,cool:'dlc',lead:0,avail:2000,mat:0.9,exp:'cloud-only',res:{cons:[0,0,0,0,0],mid:[0,0,0,0,0],opt:[0,0,0,0,0]}},
+ {id:'trn3',name:'AWS Trainium 3 (cloud-only)',gran:'cloud',acc:16,kw:20,peak:24,hbm:96,cost:0,cool:'dlc',lead:0,avail:2000,mat:0.85,exp:'cloud-only',res:{cons:[0,0,0,0,0],mid:[0,0,0,0,0],opt:[0,0,0,0,0]}},
+];
+// models: total params (B), active params (B, =total for dense), precision bytes/param, kv bytes/token, market $/1M tokens, licence
+const MODELS=[
+ {id:'llama4mav',name:'Llama 4 Maverick',tot:400,act:17,pb:1,kv:0.5,price:0.60,lic:'open'},
+ {id:'llama4sco',name:'Llama 4 Scout',tot:109,act:17,pb:1,kv:0.5,price:0.35,lic:'open'},
+ {id:'ds v3',name:'DeepSeek V3',tot:671,act:37,pb:1,kv:0.7,price:0.48,lic:'open'},
+ {id:'ds r1',name:'DeepSeek R1',tot:671,act:37,pb:1,kv:0.7,price:0.55,lic:'open'},
+ {id:'qwen235',name:'Qwen3 235B-A22B',tot:235,act:22,pb:1,kv:0.6,price:0.40,lic:'open'},
+ {id:'qwen32',name:'Qwen3 32B (dense)',tot:32,act:32,pb:1,kv:0.5,price:0.20,lic:'open'},
+ {id:'mistral3',name:'Mistral Large 3',tot:123,act:123,pb:1,kv:0.5,price:0.55,lic:'open'},
+ {id:'gptoss',name:'gpt-oss-120b',tot:120,act:5.1,pb:1,kv:0.5,price:0.25,lic:'open'},
+ {id:'kimi',name:'Kimi K2',tot:1000,act:32,pb:1,kv:0.7,price:0.60,lic:'open'},
+ {id:'gpt',name:'GPT-class (proprietary)',tot:null,act:null,pb:1,kv:0.7,price:5.0,lic:'prop'},
+ {id:'claude',name:'Claude-class (proprietary)',tot:null,act:null,pb:1,kv:0.7,price:6.0,lic:'prop'},
+ {id:'gemini',name:'Gemini-class (proprietary)',tot:null,act:null,pb:1,kv:0.7,price:5.0,lic:'prop'},
+];
+// referential throughput cells: tokens/s/MW for specific platform×model (else derived)
+const THROUGHPUT={'gb300|llama4mav':2800000,'gb300|ds v3':2600000};
+const LEADTIMES=[
+ {id:'transformer',name:'HV transformer (≥100 MVA)',lead:30},
+ {id:'switchgear',name:'MV switchgear',lead:14},
+ {id:'chiller',name:'Chillers / CDUs',lead:10},
+ {id:'ups',name:'UPS / BESS',lead:9},
+ {id:'hbm',name:'HBM / DRAM / SSD',lead:9},
+];
+
+// ---------- WP10 siting archetypes ----------
+const ARCH={
+ land:{label:'Land (standard)',cool:null,wue:null,note:'Standard land build.'},
+ float:{label:'Floating / offshore',cool:'sea',wue:0,structDefault:11,downDefault:1.2,note:'Barge/platform hull replaces land+shell; seawater cooling (WUE≈0); subsea power & fibre; wave/cyclone downtime; jurisdiction = nearest coastal state (marine uplift).'},
+ sub:{label:'Submerged / underwater',cool:'sea',wue:0,structDefault:14,downDefault:0.3,note:'Sealed pressure vessel on the seabed; no in-situ service so refresh = whole-vessel swap; sealed-atmosphere reliability (lower failure); seawater heat rejection (WUE≈0); recovery risk.'},
+ mtn:{label:'Mountain + pumped hydro',cool:null,wue:null,structDefault:10,downDefault:0.5,note:'Site paired with a pumped-storage loop: solar/wind pumps water uphill; stored energy is head- and volume-limited (firm hours = ρgHVη/P), not MWh nameplate. Longer permitting, dam risk, water rights.'},
+};
+function archKind(){return sv('arch');}
+function phStoredMWh(){ // ρ g H V η  →  MWh   (V in thousand m³ → m³)
+  const rho=1000, g=9.81, H=n('phHead'), V=n('phVol')*1e3, eta=clamp(n('phEff'),0.1,0.95);
+  return rho*g*H*V*eta/3.6e12*1000; // J→MWh: /3.6e9 for MWh; ×? — compute carefully below
+}
+function phStoredMWh2(){const rho=1000,g=9.81,H=n('phHead'),V=n('phVol')*1e3,eta=clamp(n('phEff'),0.1,0.95);const joules=rho*g*H*V*eta;return joules/3.6e9;} // J → MWh
+function updateArchUI(){
+  const a=archKind();const on=a!=='land';$('archInputs').style.display=on?'':'none';
+  set('archNote',ARCH[a].note);
+  // show only the relevant inputs
+  const show=(id,vis)=>{const lab=$(id)&&$(id).previousElementSibling;if($(id)){$(id).style.display=vis?'':'none';if(lab&&lab.tagName==='LABEL')lab.style.display=vis?'':'none';}};
+  const marine=(a==='float'||a==='sub'), mtn=(a==='mtn');
+  show('archStruct',on);show('archMaint',on);show('archLandKm',marine);show('archDown',on);
+  show('phHead',mtn);show('phVol',mtn);show('phEff',mtn);show('phCivil',mtn);
+}
+
 let OV=null, SILENT=false;
 const n=id=>{if(OV&&id in OV)return OV[id];const v=parseFloat($(id).value);return Number.isFinite(v)?v:0};
 const sv=id=>(OV&&id in OV)?OV[id]:$(id).value;
@@ -411,13 +525,39 @@ function toJurisdiction(site){
   return out;
 }
 let SITES_SRC='Embedded presets (file)';
+let CARBON=null, IXP=null, RESOURCES=null;
+async function fetchJSON(path){try{const r=await fetch(path,{cache:'no-cache'});if(!r.ok)throw 0;return await r.json();}catch(e){return null;}}
+function nearestIXPkm(lat,lon){if(!IXP||!IXP.recs)return null;let best=Infinity;for(const r of IXP.recs){const d=haversineKm(lat,lon,r[3],r[4]);if(d<best)best=d;}return Number.isFinite(best)?Math.max(1,Math.round(best)):null;}
+function applyResources(id){if(!RESOURCES||!RESOURCES.records)return;const rec=RESOURCES.records.find(x=>x.id===id);if(!rec||!SITES[id])return;const f=SITES[id].f;const map={solarCF:'solar_cf',windCF:'wind_cf',geoClass:'geothermal_class',gasAccess:'gas_access',hydroMW:'hydro_contract_mw',nucPolicy:'nuclear_policy',gasPrice:'gas_price_usd_mwh_th'};for(const [k,rk] of Object.entries(map)){const v=rec[rk];if(v&&v.value!=null)f[k]=[v.value,v.label==='referential'?'ref':'baseline',v.source_url||v.note||'',v.as_of||''];}}
 async function loadCurated(){
-  try{const r=await fetch('./data/jurisdictions.json',{cache:'no-cache'});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();
-    const recs=(j.records||[]);let nNew=0;recs.forEach(rec=>{const site=fromJurisdiction(rec);if(site){if(!SITES[rec.id])nNew++;SITES[rec.id]=site;}});
-    SITES_SRC='Curated data/jurisdictions.json ('+recs.length+' records, generated '+(j.generated||'?')+')';
-    rebuildSiteOptions($('sitePreset').value);set('dataStatus','Location records: '+SITES_SRC+(nNew?'; '+nNew+' not in the embedded table':'')+'. Climate and IXP fields still from embedded values until the grid bundles are published.');
-    applySite($('sitePreset').value);calc();
-  }catch(e){set('dataStatus','Location records: embedded presets ('+(location.protocol==='file:'?'file:// origin — the curated file loads on a served origin':'data/jurisdictions.json not published yet')+').');}
+  // jurisdictions
+  const j=await fetchJSON('./data/jurisdictions.json');
+  let msg=[];
+  if(j&&j.records){let nNew=0;j.records.forEach(rec=>{const site=fromJurisdiction(rec);if(site){if(!SITES[rec.id])nNew++;SITES[rec.id]=site;}});SITES_SRC='Curated jurisdictions.json ('+j.records.length+' records, '+(j.generated||'?')+')';msg.push(j.records.length+' jurisdictions'+(nNew?', '+nNew+' new':''));}
+  // power options
+  const po=await fetchJSON('./data/power_options.json');
+  if(po&&po.records){const byId={};po.records.forEach(r=>byId[r.id]=r);let nOv=0;POWER_OPTIONS.forEach(o=>{const r=byId[o.id];if(!r)return;const num=(x,d)=>(x&&x.value!=null)?x.value:d;o.capex=num(r.capex_usd_per_kw,o.capex);o.fom=num(r.fixed_om_usd_per_kw_yr,o.fom);if(r.variable_om_usd_per_mwh&&typeof r.variable_om_usd_per_mwh.value==='number')o.vom=r.variable_om_usd_per_mwh.value;o.eff=num(r.efficiency,o.eff);o.life=num(r.life_years,o.life);o.lead=num(r.lead_months,o.lead);o.avail=num(r.earliest_availability_year,o.avail);nOv++;});if(nOv)msg.push(nOv+' power options');}
+  // carbon by country
+  CARBON=await fetchJSON('./data/carbon.json');
+  if(CARBON&&CARBON.rows){let n=0;Object.values(SITES).forEach(site=>{const cc=(site.record&&site.record.parent)||(site.record&&site.record.id||'').split('-')[0];const row=CARBON.rows[cc];if(row&&row.gco2_kwh&&site.f.ci){site.f.ci=[row.gco2_kwh,'ref',(CARBON.url||'Ember'),String(row.year||CARBON.fetched||'').slice(0,7)];n++;}});if(n)msg.push('carbon for '+n+' sites');}
+  // ixp
+  IXP=await fetchJSON('./data/ixp.json');
+  if(IXP&&IXP.recs){let n=0;Object.values(SITES).forEach(site=>{const km=nearestIXPkm(site.lat,site.lon);if(km!=null&&site.f.ixp){site.f.ixp=[km,'ref','PeeringDB',String((IXP.fetched||'')).slice(0,7)];n++;}});if(n)msg.push('IXP distance for '+n+' sites');}
+  // resources
+  RESOURCES=await fetchJSON('./data/resources.json');
+  if(RESOURCES&&RESOURCES.records){Object.keys(SITES).forEach(applyResources);msg.push('resources');}
+  // platforms
+  const plat=await fetchJSON('./data/platforms.json');
+  if(plat&&plat.records){const byId={};plat.records.forEach(r=>byId[r.id]=r);let nc=0;PLATFORMS.forEach(o=>{const r=byId[o.id];if(!r)return;const num=(x,d)=>(x&&x.value!=null)?x.value:d;if(r.tdp_kw)o.kw=num(r.tdp_kw,o.kw);if(r.unit_cost_usd_m)o.cost=num(r.unit_cost_usd_m,o.cost);if(r.lead_months)o.lead=num(r.lead_months,o.lead);if(r.earliest_availability_year)o.avail=num(r.earliest_availability_year,o.avail);if(r.software_maturity_factor)o.mat=num(r.software_maturity_factor,o.mat);if(typeof r.accelerators_per_unit==='number')o.acc=r.accelerators_per_unit;if(typeof r.hbm_gb_per_accelerator==='number')o.hbm=r.hbm_gb_per_accelerator;if(r.export_status)o.exp=r.export_status;if(r.residual_pct_12_24_36_48_60)o.res=r.residual_pct_12_24_36_48_60;nc++;});if(nc)msg.push(nc+' platforms');}
+  // models
+  const mdl=await fetchJSON('./data/models.json');
+  if(mdl&&mdl.records){const byId={};mdl.records.forEach(r=>byId[r.id]=r);let nc=0;MODELS.forEach(o=>{const r=byId[o.id];if(!r)return;if(typeof r.total_params_b==='number'||r.total_params_b===null)o.tot=r.total_params_b;if(typeof r.active_params_b==='number'||r.active_params_b===null)o.act=r.active_params_b;if(r.market_price_usd_per_1m_tokens&&r.market_price_usd_per_1m_tokens.value!=null)o.price=r.market_price_usd_per_1m_tokens.value;nc++;});if(nc)msg.push(nc+' models');}
+  // throughput cells
+  const tp=await fetchJSON('./data/throughput.json');
+  if(tp&&tp.cells){Object.assign(THROUGHPUT,tp.cells);msg.push('throughput cells');}
+  rebuildSiteOptions($('sitePreset').value);
+  set('dataStatus',msg.length?('Loaded: '+msg.join(' · ')+'.'):'Location records: embedded presets ('+(location.protocol==='file:'?'file:// origin — curated files load on a served origin':'no data/*.json published yet')+').');
+  applySite($('sitePreset').value);calc();
 }
 const sel=$('sitePreset');
 let siteOverrides={}; // input id → true when user edited a preset-fed value
@@ -433,6 +573,12 @@ function applySite(key){
 }
 rebuildSiteOptions();
 sel.addEventListener('change',()=>{applySite(sel.value);calc();});
+$('arch').addEventListener('change',()=>{const a=$('arch').value;updateArchUI();
+  if(a!=='land'){$('archStruct').value=ARCH[a].structDefault;$('archDown').value=ARCH[a].downDefault;if(ARCH[a].cool==='sea')$('cool').value='dlc';}
+  if(a==='mtn'){$('mixTemplate').value='mtn';applyTemplate('mtn');}
+  if(a!=='land'){$('vizView').value='scene';}
+  calc();});
+updateArchUI();
 ['lat','lon'].forEach(id=>$(id).addEventListener('input',()=>{siteOverrides[id]=true;}));
 $('siteSave').addEventListener('click',()=>{const name=($('siteName').value||'').trim()||prompt('Name for this site');if(!name)return;const key=name.replace(/[^a-z0-9]+/gi,'-').toLowerCase();CUSTOM[key]=currentSiteRecord(name);try{localStorage.setItem(CUST_KEY,JSON.stringify(CUSTOM));}catch(e){}rebuildSiteOptions('custom:'+key);applySite('custom:'+key);calc();});
 $('siteDelete').addEventListener('click',()=>{const k=$('sitePreset').value;if(!k.startsWith('custom:'))return;delete CUSTOM[k.slice(7)];try{localStorage.setItem(CUST_KEY,JSON.stringify(CUSTOM));}catch(e){}rebuildSiteOptions();applySite($('sitePreset').value);calc();});
@@ -469,6 +615,8 @@ const POWER_OPTIONS=[
  {id:'micro',name:'Portable / micro reactor (1–20 MW)',firm:'baseload',capex:15000,fom:200,vom:15,eff:1,life:20,ci:12,lead:30,avail:2029,dep:'nuc',label:'baseline',src:'no delivered unit; author baseline from licensing announcements',unit:'MW'},
  {id:'biomass',name:'Biomass / waste-heat CHP',firm:'baseload',capex:4000,fom:120,vom:15,eff:0.30,life:25,ci:50,lead:24,avail:2000,dep:'none',label:'baseline',src:'IEA; feedstock at gas-price proxy',unit:'MW'},
  {id:'h2turb',name:'Hydrogen turbine (100% H₂)',firm:'dispatch',capex:1700,fom:20,vom:5,eff:0.40,life:25,ci:0,lead:36,avail:2030,dep:'none',label:'baseline',src:'fuel at 3× gas price; author baseline',unit:'MW'},
+ ,
+ {id:'phydro',name:'Pumped-hydro storage (energy-limited)',firm:'storage',capex:0,fom:8,vom:1,eff:1,life:40,ci:0,lead:36,avail:2000,dep:'none',label:'baseline',src:'reservoir capex entered separately; energy limit = rho g H V eta',unit:'MWh'},
 ];
 const FIRMF={baseload:.92,dispatch:.95,variable:1,storage:0,grid:1,backup:0};
 const CF_DEFAULT={baseload:.9,dispatch:.9,grid:1,backup:.02};
@@ -480,6 +628,7 @@ const TEMPLATES={ // resource-aware: L = facility load MW; sizes divide by firmn
  geo:L=>{const g=n('geoClass')>=2,h=Math.min(n('hydroMW'),L/.92);const r=[];if(g)r.push(['geo',L/.92,0]);if(h>0)r.push(['hydro',g?Math.min(h,L*.5):h,0]);r.push(['grid',g?L*.5:Math.max(L*.5,L-h*.92),0],['genset',L*.2,0]);return r;},
  nuc:L=>{const r=[];if(n('nucPolicy')>0){if(n('hydroMW')>0)r.push(['nuccontract',Math.min(n('hydroMW'),L/.92),0]);r.push(['smr',L/.92,0]);}r.push(['bess',L*4,0],['grid',L,0],['genset',L*.2,0]);return r;},
  ccs:L=>[['ccgtccs',L/.92,0],['grid',L,0],['genset',L*.2,0]],
+ mtn:L=>[['pv',L*3.5,0],['wind',L*1.5,0],['phydro',0,0],['grid',L*0.5,0]],
 };
 let MIX=[];
 function loadMW(){const rkw=n('rkw'),pu=Math.ceil(n('mw')*1000/rkw),u=pu+Math.ceil(pu*n('spare')/100);return Math.round(u*rkw/1000*(1+n('itoh')/100)*(sv('pueMode')==='manual'?n('pueManual'):derivedPUE())*10)/10;}
@@ -515,7 +664,7 @@ function dispatchYear(y,loadMW,L,rate,ttp){
   const entries=MIX.map(r=>({o:POWER_OPTIONS.find(x=>x.id===r.opt),mw:r.mw,order:r.order})).filter(e=>e.o&&e.mw>0&&eligible(e.o));
   const monthsIn=(ttp+y*12); // months from project start at start of this operating year
   const avail=e=>{const ready=optReady(e.o,e.order);return clamp((monthsIn+12-ready)/12,0,1);}; // fraction of this year the entry is available
-  const bessMWh=entries.filter(e=>e.o.firm==='storage').reduce((a,e)=>a+e.mw*avail(e),0);
+  const bessMWh=entries.filter(e=>e.o.firm==='storage').reduce((a,e)=>a+(e.o.id==='phydro'?phStoredMWh2():e.mw)*avail(e),0);
   const varMW=entries.filter(e=>e.o.firm==='variable').reduce((a,e)=>a+e.mw*optCF(e.o)*avail(e),0);
   const firmable=varMW>0?clamp(.3+bessMWh/(varMW*14),0,1):0;
   const sup=entries.filter(e=>e.o.firm!=='storage'&&e.o.firm!=='backup').map(e=>{const a=avail(e);let firm=e.mw*a;if(e.o.firm==='variable')firm=e.mw*optCF(e.o)*a*firmable;else firm*=FIRMF[e.o.firm]||1;if(e.o.curt)firm*=1-e.o.curt/8760*(1-n('flexFrac'));return {e,a,firm,v:optVar(e.o,y),fixed:(e.o.unit==='MWh'?0:e.mw*1000*(e.o.capex*crf(rate,e.o.life)+e.o.fom))*a};}).sort((a,b)=>a.v-b.v);
@@ -537,17 +686,190 @@ function derivedPUE(){
   return 1+n('etaElec')+c.k*(1-clamp(n('ffree'),0,1)*(1-n('rhoEcon')))+n('kAux');
 }
 
+
+// ---------- WP9 graphical models (visual subsystem; drawing only, never feeds calc) ----------
+const COAST=[[[-80.0,-59.6],[-81.0,-60.2],[-80.3,-66.3],[-80.0,-59.6]],[[-78.0,-45.2],[-80.0,-43.3],[-80.6,-54.2],[-78.0,-48.7],[-78.0,-45.2]],[[-73.5,-121.2],[-73.5,-118.7],[-73.7,-122.6],[-73.5,-121.2]],[[-73.5,-125.6],[-73.9,-124.0],[-73.5,-127.3],[-73.5,-125.6]],[[-71.9,-99.0],[-72.5,-96.2],[-71.9,-102.3],[-71.9,-99.0]],[[-71.0,-68.5],[-72.2,-68.8],[-72.5,-71.1],[-71.7,-75.0],[-71.2,-72.1],[-68.9,-70.3],[-71.0,-68.5]],[[-64.2,-58.6],[-64.8,-62.0],[-66.2,-62.1],[-68.0,-65.7],[-70.7,-61.8],[-73.7,-60.8],[-76.6,-70.6],[-76.7,-77.2],[-77.9,-73.7],[-79.2,-78.0],[-83.2,-58.2],[-80.3,-28.5],[-79.3,-29.7],[-79.5,-35.6],[-78.3,-35.8],[-75.1,-17.5],[-74.5,-15.7],[-73.9,-16.5],[-73.1,-15.4],[-70.9,-6.9],[-71.6,-0.2],[-69.9,7.7],[-70.8,10.8],[-70.0,13.4],[-70.5,27.1],[-68.5,33.9],[-69.8,38.6],[-65.8,54.5],[-68.0,61.4],[-67.9,68.9],[-69.2,69.7],[-70.3,67.8],[-70.7,69.1],[-71.9,67.9],[-72.3,69.9],[-69.9,73.9],[-66.2,88.0],[-67.4,95.8],[-67.2,99.7],[-65.6,102.8],[-66.9,106.2],[-65.9,113.6],[-67.3,119.8],[-66.2,134.8],[-65.3,135.1],[-67.0,137.5],[-66.9,145.5],[-68.4,148.8],[-71.7,171.2],[-76.2,163.6],[-78.2,164.7],[-78.8,167.0],[-79.2,161.8],[-80.9,159.8],[-83.8,169.4],[-84.7,180],[-90,180],[-90,-180],[-84.7,-180],[-84.1,-179.1],[-85.0,-143.1],[-83.7,-153.6],[-82.0,-152.9],[-81.1,-156.8],[-80.3,-146.4],[-79.1,-155.3],[-76.9,-158.4],[-77.4,-151.3],[-76.5,-146.1],[-75.4,-146.2],[-74.3,-135.2],[-73.7,-113.9],[-75.2,-107.6],[-74.9,-100.1],[-72.6,-103.7],[-73.9,-74.9],[-72.5,-67.4],[-69.7,-68.5],[-67.3,-67.7],[-64.6,-63.0],[-63.5,-57.2],[-64.2,-58.6]],[[-53.9,-67.8],[-54.7,-65.0],[-55.5,-69.2],[-52.8,-74.7],[-54.1,-71.1],[-52.5,-69.3],[-53.9,-67.8]],[[-51.1,-58.5],[-51.9,-58.0],[-51.9,-61.2],[-51.1,-58.5]],[[-49.7,70.3],[-49.8,68.7],[-48.6,68.9],[-49.7,70.3]],[[-40.8,145.4],[-40.9,148.3],[-43.2,147.9],[-43.5,146.0],[-40.8,145.4]],[[-40.9,173.0],[-41.3,174.2],[-43.9,173.1],[-46.6,169.3],[-46.2,166.7],[-40.9,173.0]],[[-36.2,174.6],[-37.9,176.8],[-37.7,178.5],[-41.7,175.2],[-39.5,173.8],[-37.4,174.7],[-34.5,172.6],[-36.2,174.6]],[[-13.6,50.1],[-15.7,50.4],[-24.9,47.1],[-25.0,44.0],[-22.1,43.3],[-16.2,44.4],[-14.6,47.7],[-12.0,49.2],[-13.6,50.1]],[[-13.8,143.6],[-15.0,145.4],[-19.0,146.4],[-26.1,153.1],[-31.6,152.9],[-37.4,150.0],[-39.0,146.3],[-37.9,145.0],[-38.8,143.6],[-38.0,140.6],[-34.4,138.2],[-35.3,136.8],[-32.9,137.8],[-34.9,136.0],[-32.6,134.3],[-31.5,131.3],[-35.1,118.0],[-34.2,115.0],[-31.6,115.7],[-26.1,113.3],[-26.3,114.2],[-24.4,113.4],[-21.8,114.1],[-19.7,120.9],[-14.2,125.7],[-15.0,129.6],[-11.1,132.4],[-11.9,136.5],[-15.0,135.5],[-17.7,140.2],[-10.7,142.5],[-13.8,143.6]],[[-10.1,124.4],[-10.2,123.5],[-8.4,127.3],[-10.1,124.4]],[[-8.1,117.9],[-8.7,119.1],[-9.0,116.7],[-8.1,117.9]],[[-6.8,108.6],[-8.4,115.7],[-6.9,105.4],[-5.9,106.1],[-6.8,108.6]],[[-6.2,134.7],[-6.9,134.2],[-5.4,134.5],[-6.2,134.7]],[[-5.5,152.0],[-5.7,148.3],[-5.5,150.8],[-4.2,151.5],[-5.5,152.0]],[[-3.1,130.5],[-3.9,130.8],[-3.4,127.9],[-3.1,130.5]],[[-1.2,134.1],[-3.4,135.5],[-1.7,138.3],[-3.9,144.6],[-10.6,150.7],[-10.1,147.9],[-7.6,144.7],[-9.3,142.6],[-8.4,137.6],[-7.3,138.7],[-5.4,137.9],[-4.1,133.0],[-2.8,132.0],[-2.2,133.7],[-0.9,130.5],[-1.2,134.1]],[[1.4,125.2],[0.2,120.2],[-1.4,120.9],[-0.6,123.3],[-1.9,121.5],[-5.3,123.2],[-4.6,121.5],[-2.6,121.0],[-5.5,120.4],[-5.4,119.4],[-2.8,118.8],[0.6,120.0],[1.4,125.2]],[[1.1,128.7],[-0.9,128.1],[2.2,127.9],[1.1,128.7]],[[-5.9,105.8],[-4.2,102.6],[5.5,95.3],[5.2,97.5],[0.1,103.8],[-0.7,103.4],[-3.1,106.1],[-5.9,105.8]],[[1.8,117.9],[0.9,119.0],[0.8,117.8],[-4.0,116.1],[-2.9,110.2],[-0.5,109.1],[2.0,109.7],[3.1,113.0],[6.9,116.7],[5.4,119.2],[3.2,117.3],[1.8,117.9]],[[8.4,126.4],[5.6,125.4],[7.8,123.6],[7.2,121.9],[9.8,125.4],[8.4,126.4]],[[6.2,81.2],[6.8,79.9],[9.8,80.1],[7.5,81.8],[6.2,81.2]],[[10.3,124.0],[9.0,123.0],[9.7,122.4],[11.2,124.1],[10.3,124.0]],[[9.3,118.5],[8.4,117.2],[11.4,119.5],[9.3,118.5]],[[11.9,121.9],[11.6,123.1],[10.4,122.0],[11.9,121.9]],[[12.2,125.5],[10.1,124.8],[12.6,124.3],[12.2,125.5]],[[13.1,121.5],[12.2,121.3],[13.5,120.3],[13.1,121.5]],[[18.5,121.3],[17.1,122.5],[14.3,121.7],[13.8,124.0],[12.5,124.1],[15.0,120.1],[18.5,121.3]],[[19.9,-72.6],[18.6,-68.3],[17.6,-71.4],[18.3,-74.5],[18.7,-72.3],[19.6,-73.4],[19.9,-72.6]],[[18.7,110.3],[19.4,108.6],[20.1,110.8],[18.7,110.3]],[[19.1,-155.5],[20.3,-155.9],[19.5,-154.8],[19.1,-155.5]],[[22.8,-79.7],[20.3,-74.2],[19.9,-77.8],[20.4,-77.1],[21.6,-78.7],[22.6,-81.8],[21.9,-85.0],[23.2,-82.3],[22.8,-79.7]],[[22.8,121.2],[22.0,120.7],[23.6,120.1],[25.3,121.5],[22.8,121.2]],[[38.2,15.5],[36.6,15.1],[37.6,12.4],[38.2,15.5]],[[41.2,9.2],[39.2,9.7],[38.9,8.8],[41.0,8.2],[41.2,9.2]],[[37.1,141.0],[35.1,140.3],[33.5,135.8],[34.6,135.1],[33.9,131.0],[33.1,132.0],[31.4,130.2],[33.3,129.4],[35.4,132.6],[35.5,135.7],[37.3,136.7],[38.2,139.4],[40.6,139.9],[41.4,141.4],[37.1,141.0]],[[42.2,9.6],[41.4,9.2],[42.3,8.5],[43.0,9.4],[42.2,9.6]],[[44.2,143.9],[44.4,145.3],[43.3,145.5],[41.6,140.0],[45.6,142.0],[44.2,143.9]],[[50.7,-56.1],[49.8,-56.8],[49.2,-53.5],[46.7,-53.1],[47.8,-54.2],[46.9,-55.4],[47.6,-59.3],[51.6,-55.4],[50.7,-56.1]],[[50.7,143.6],[49.0,144.7],[49.3,143.2],[46.1,143.5],[46.0,142.1],[54.2,142.2],[50.7,143.6]],[[52.3,-6.8],[51.8,-10.0],[53.9,-9.7],[55.2,-6.7],[54.6,-5.7],[52.3,-6.8]],[[55.6,12.7],[54.8,12.1],[55.8,10.9],[55.6,12.7]],[[57.1,-153.0],[57.5,-154.7],[57.6,-152.1],[57.1,-153.0]],[[58.6,-3.0],[57.6,-4.1],[57.7,-2.0],[56.0,-3.1],[52.7,1.7],[51.3,1.4],[50.0,-5.2],[51.4,-3.4],[52.0,-5.3],[52.3,-4.2],[53.5,-4.6],[54.0,-2.9],[56.8,-6.1],[58.6,-5.0],[58.6,-3.0]],[[65.7,-85.2],[63.7,-80.1],[63.5,-87.2],[65.7,-85.2]],[[66.5,-14.5],[65.1,-13.6],[63.5,-18.7],[64.0,-22.8],[64.4,-21.8],[64.9,-24.0],[65.4,-22.2],[65.6,-24.3],[66.5,-14.5]],[[67.1,-75.9],[67.6,-77.2],[68.0,-75.1],[67.1,-75.9]],[[66.6,-175.0],[66.0,-169.9],[65.4,-172.5],[64.3,-173.0],[66.1,-178.7],[65.0,-180],[69.0,-180],[66.6,-175.0]],[[69.1,-95.6],[69.4,-99.8],[70.1,-98.2],[69.1,-95.6]],[[70.9,-178.7],[71.5,-180],[71.3,-177.6],[70.9,-178.7]],[[69.5,-90.5],[68.5,-90.6],[69.3,-89.2],[67.2,-87.4],[69.9,-85.5],[69.7,-82.6],[69.2,-81.3],[67.6,-81.3],[66.6,-85.8],[62.0,-93.2],[58.9,-94.7],[57.1,-92.3],[55.1,-82.3],[53.3,-82.1],[51.2,-79.9],[52.6,-78.6],[54.7,-79.8],[56.5,-76.5],[58.8,-78.5],[59.9,-77.3],[62.3,-78.1],[62.4,-73.8],[61.1,-69.6],[59.0,-69.3],[58.2,-67.6],[60.3,-64.6],[56.3,-61.8],[54.6,-57.3],[52.1,-55.7],[50.2,-60.0],[50.2,-66.4],[46.8,-71.1],[49.2,-65.1],[46.2,-64.5],[45.9,-61.5],[47.0,-60.5],[45.9,-59.8],[43.5,-65.4],[44.5,-66.2],[45.3,-64.4],[45.1,-67.1],[43.0,-70.7],[41.6,-70.0],[39.5,-75.5],[37.2,-75.9],[39.2,-76.3],[35.6,-75.7],[31.4,-81.3],[25.2,-80.4],[30.1,-84.1],[29.7,-93.8],[28.3,-96.6],[22.4,-97.9],[19.3,-96.3],[18.1,-94.4],[18.7,-92.0],[21.0,-90.3],[21.5,-87.1],[15.9,-88.9],[15.3,-83.4],[11.1,-83.8],[8.8,-81.4],[9.6,-79.6],[8.6,-76.8],[11.1,-74.9],[12.4,-71.8],[9.1,-71.7],[12.2,-69.9],[10.6,-68.2],[10.7,-61.9],[9.9,-62.4],[6.0,-57.1],[4.2,-51.3],[-0.1,-50.4],[-1.6,-44.9],[-2.7,-44.6],[-2.9,-40.0],[-5.1,-35.6],[-7.3,-34.7],[-13.1,-38.7],[-21.9,-40.9],[-24.9,-47.6],[-28.7,-48.9],[-34.4,-53.8],[-33.9,-58.4],[-36.9,-56.8],[-38.7,-59.2],[-38.8,-62.3],[-41.0,-62.7],[-41.1,-65.1],[-42.6,-63.5],[-45.6,-67.3],[-48.1,-66.0],[-50.7,-69.1],[-52.3,-68.2],[-53.8,-71.0],[-52.3,-74.9],[-48.7,-75.6],[-46.9,-74.1],[-46.6,-75.6],[-42.4,-72.7],[-43.2,-74.3],[-37.2,-73.6],[-32.4,-71.4],[-19.8,-70.2],[-17.4,-71.5],[-14.6,-76.0],[-6.1,-81.2],[-2.7,-79.8],[-1.1,-80.9],[3.8,-77.1],[8.3,-78.2],[8.9,-79.6],[7.2,-80.9],[9.9,-85.7],[13.3,-87.5],[18.3,-103.5],[19.9,-105.5],[22.8,-106.0],[31.8,-114.8],[23.2,-109.4],[24.7,-112.2],[27.7,-115.1],[28.6,-114.2],[33.0,-117.3],[34.6,-120.6],[40.3,-124.4],[48.2,-124.7],[47.1,-122.6],[49.0,-122.8],[50.8,-127.4],[58.1,-134.1],[60.9,-147.1],[59.2,-151.7],[61.3,-150.6],[56.0,-158.4],[54.4,-164.8],[57.6,-157.7],[58.9,-157.0],[58.7,-162.0],[59.6,-161.9],[61.5,-166.1],[63.1,-164.6],[63.8,-160.8],[64.8,-160.8],[64.4,-165.0],[65.7,-168.1],[66.1,-161.7],[68.4,-166.8],[71.4,-156.6],[68.9,-136.5],[70.5,-128.1],[67.4,-108.9],[68.7,-108.2],[68.8,-106.2],[67.6,-101.5],[68.6,-97.7],[67.3,-96.1],[69.1,-94.2],[70.1,-96.5],[71.9,-95.2],[69.5,-90.5]],[[73.1,-114.2],[73.0,-109.9],[71.7,-108.2],[73.1,-108.4],[73.1,-106.5],[69.6,-101.1],[68.5,-113.3],[70.0,-117.3],[70.4,-112.4],[71.6,-119.4],[73.1,-114.2]],[[73.2,-86.6],[73.8,-82.3],[72.1,-80.7],[72.7,-77.8],[71.6,-72.2],[69.2,-67.0],[68.7,-68.8],[66.9,-61.9],[65.0,-63.9],[66.3,-68.0],[63.4,-64.7],[63.7,-68.8],[61.9,-66.2],[64.7,-74.8],[64.2,-77.7],[65.3,-77.9],[65.5,-74.0],[67.7,-72.9],[70.2,-79.0],[71.2,-89.9],[73.1,-89.4],[73.8,-85.8],[73.2,-86.6]],[[73.8,-100.4],[73.8,-97.4],[73.0,-98.1],[71.7,-96.7],[72.5,-102.5],[72.7,-100.4],[73.4,-101.5],[73.8,-100.4]],[[72.8,-93.2],[72.1,-95.4],[73.4,-96.0],[73.9,-90.5],[72.8,-93.2]],[[71.4,-120.5],[71.9,-125.9],[73.7,-123.9],[74.3,-124.9],[73.5,-115.5],[71.4,-120.5]],[[75.6,145.1],[75.3,137.0],[76.1,138.8],[75.6,145.1]],[[76.7,-98.5],[75,-98.2],[75.6,-102.5],[76.7,-98.5]],[[76.2,-108.2],[75.5,-105.7],[74.4,-112.2],[74.7,-113.9],[75.2,-111.8],[75.2,-117.7],[76.5,-115.4],[76.2,-108.2]],[[70.7,57.5],[72.0,51.5],[75.1,55.6],[76.5,68.9],[74.3,58.5],[72.4,55.4],[70.7,57.5]],[[77.1,-94.7],[74.9,-79.8],[74.5,-89.8],[76.8,-97.1],[77.1,-94.7]],[[77.6,-116.2],[76.5,-117.1],[76.1,-122.9],[77.6,-116.2]],[[77.0,107.0],[75.8,114.1],[74.2,109.4],[73.6,127.0],[70.8,131.3],[71.8,132.3],[71.5,139.9],[72.4,139.1],[72.8,140.5],[68.7,169.6],[69.0,170.8],[70.1,170.5],[69.9,175.7],[69.0,180],[65.0,180],[64.6,177.4],[62.3,179.2],[61.7,173.7],[59.9,170.3],[59.9,163.5],[58.2,162.0],[57.6,163.2],[54.9,162.1],[51.0,156.8],[56.8,155.9],[62.6,164.5],[60.5,160.1],[61.8,159.3],[61.4,156.7],[59.8,154.2],[59.1,155.0],[59.0,142.2],[54.7,135.1],[54.2,139.9],[52.2,141.4],[46.3,138.2],[39.8,127.5],[36.8,129.5],[35.1,129.1],[34.4,126.5],[36.9,126.9],[38.1,124.7],[39.6,125.3],[38.9,121.1],[40.9,121.6],[39.2,118.0],[37.4,118.9],[37.5,122.4],[34.9,119.2],[31.7,121.9],[28.2,121.7],[22.8,115.9],[21.4,110.8],[20.3,110.4],[21.7,108.5],[19.8,105.9],[13.4,109.3],[11.7,109.2],[8.6,105.2],[9.9,105.1],[13.4,100.1],[9.2,99.2],[5.5,103.0],[1.3,104.2],[2.8,101.4],[6.5,100.1],[7.8,98.3],[11.4,98.8],[16.9,97.2],[16.0,94.2],[18.2,94.3],[22.8,91.4],[21.5,87.0],[15.9,80.3],[10.4,79.9],[8.0,77.5],[16.0,73.5],[21.4,72.6],[20.9,70.5],[25.4,66.4],[25.7,57.4],[27.1,56.5],[26.5,54.7],[27.9,51.5],[30.1,50.1],[30.0,48.0],[24.0,51.8],[24.1,54.0],[26.4,56.4],[24.2,56.8],[22.3,59.8],[17.2,55.3],[12.6,43.5],[16.8,42.6],[28.1,34.6],[29.5,34.9],[27.6,33.9],[29.9,32.4],[22.0,36.9],[18.6,37.5],[12.4,43.3],[11.7,42.7],[10.4,44.6],[12.0,51.1],[10.6,51.0],[4.2,47.7],[-4.7,39.2],[-14.7,40.8],[-19.8,34.8],[-23.7,35.6],[-25.7,32.6],[-28.8,32.2],[-33.9,25.8],[-34.1,18.4],[-18.1,11.8],[-10.7,13.7],[-5.0,11.9],[-1.1,8.8],[3.7,9.4],[4.8,8.5],[4.3,5.9],[6.3,4.3],[4.7,-2.0],[4.8,-9.0],[12.2,-16.6],[14.7,-17.6],[18.1,-16.1],[21.9,-17.0],[35.8,-5.9],[35.2,-2.2],[37.4,9.5],[36.9,11.1],[33.8,10.3],[30.3,19.1],[32.8,21.5],[30.9,28.9],[31.0,33.8],[36.7,36.2],[36.7,27.6],[39.5,26.2],[42.0,33.5],[40.9,38.3],[42.0,41.7],[45.2,36.7],[47.3,39.1],[46.3,35.0],[45.1,36.3],[44.4,33.9],[45.3,32.5],[46.1,33.3],[46.6,30.7],[42.6,27.7],[41.1,28.8],[40.3,22.6],[37.7,24.0],[36.4,22.5],[40.3,19.4],[41.7,19.5],[45.7,13.1],[44.1,12.6],[40.2,18.5],[40.4,16.9],[38.0,16.1],[40.0,15.4],[44.4,8.9],[43.1,3.1],[36.7,-2.1],[35.9,-5.4],[36.9,-8.9],[43.0,-9.4],[44.0,-1.4],[46.0,-1.2],[48.7,-4.6],[48.6,-1.6],[49.8,-1.9],[50.1,1.3],[53.1,4.7],[53.5,8.1],[57.1,8.5],[57.7,10.6],[55.5,9.7],[54.0,10.9],[54.4,19.7],[55.2,21.3],[57.4,21.6],[57.0,24.1],[59.2,23.3],[60.0,29.1],[60.7,21.3],[63.2,21.5],[65.1,25.4],[65.7,22.2],[62.7,17.8],[61.3,17.1],[60.1,18.8],[56.1,15.9],[55.4,12.9],[59.5,10.4],[58.6,5.7],[62.0,5.0],[67.8,14.8],[71.0,24.5],[71.2,28.2],[67.5,41.1],[66.0,38.4],[66.6,33.2],[63.8,37.0],[65.1,37.2],[64.5,39.6],[66.5,42.1],[66.1,43.9],[68.6,43.5],[68.3,46.3],[66.7,46.3],[68.9,53.7],[68.3,59.9],[68.9,61.1],[69.9,60.6],[68.1,68.5],[68.6,69.2],[69.5,66.9],[71.0,66.7],[72.8,69.2],[72.8,72.6],[71.4,71.8],[68.4,73.7],[66.3,71.3],[66.2,72.4],[67.8,75.1],[71.4,73.1],[72.8,74.7],[71.2,76.4],[71.9,75.9],[72.3,77.6],[71.8,81.5],[73.6,80.5],[73.9,86.8],[74.5,86.0],[75.1,87.2],[77.7,104.4],[77.0,107.0]],[[78.3,-100.1],[78.4,-105.2],[78.7,-104.2],[79.3,-105.5],[78.3,-100.1]],[[78.3,105.1],[77.9,99.4],[79.3,102.1],[78.3,105.1]],[[79.7,18.3],[79.0,21.5],[76.8,15.9],[79.7,10.4],[79.7,18.3]],[[80.4,25.4],[80.1,27.4],[80.3,17.4],[80.4,25.4]],[[78.9,99.9],[80.3,91.2],[81.3,95.9],[79.8,100.2],[78.9,99.9]],[[79.7,-87.0],[79.3,-85.8],[78.2,-90.8],[80.2,-96.7],[81.3,-92.4],[79.7,-87.0]],[[83.1,-68.5],[82.6,-61.9],[79.3,-76.9],[78.5,-75.4],[76.2,-80.6],[76.5,-89.5],[77.2,-87.8],[77.9,-88.3],[77.5,-85.0],[78.4,-88.0],[79.3,-85.1],[80.3,-86.9],[80.5,-81.8],[81.9,-91.6],[83.1,-68.5]],[[83.5,-27.1],[82.7,-20.8],[82.2,-31.9],[81.3,-12.2],[80.2,-20.0],[80.1,-17.7],[78.8,-19.7],[77.0,-18.5],[76.6,-21.7],[76.1,-19.8],[75.2,-20.7],[74.3,-19.4],[73.3,-23.6],[72.2,-22.3],[72.3,-24.8],[70.7,-21.8],[71.4,-25.5],[70.2,-26.4],[70.1,-22.3],[65.5,-39.8],[62.7,-42.8],[60.1,-43.4],[60.9,-48.3],[63.6,-51.6],[67.2,-54.0],[69.9,-50.9],[69.6,-54.7],[70.8,-54.4],[70.6,-51.4],[71.7,-55.8],[72.6,-54.7],[75.5,-58.6],[76.1,-68.5],[77.0,-71.4],[77.4,-66.8],[78.0,-73.3],[79.4,-65.7],[80.1,-68.0],[81.8,-62.7],[81.7,-44.5],[82.6,-46.8],[83.5,-27.1]]];
+const NS='http://www.w3.org/2000/svg';
+function el(tag,attrs,txt){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(txt!=null)e.textContent=txt;return e;}
+function vizClear(){const s=$('vizSvg');while(s.firstChild)s.removeChild(s.firstChild);return s;}
+function projGlobal(lat,lon,W,H){return [ (lon+180)/360*W, (90-lat)/180*H ];}
+function drawZoom(r){
+  const svg=vizClear();const W=760,H=460;svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  const lat=n('lat'),lon=n('lon');const z=+sv('vizZoom');
+  // zoom windows in degrees: global, region (~40°), site (~4°)
+  const span=[360,40,4][z], spanLat=[180,20,2][z];
+  const cLon=z===0?0:lon, cLat=z===0?0:lat;
+  const lon0=cLon-span/2, lat0=cLat+spanLat/2;
+  const sx=W/span, sy=H/spanLat;
+  const P=(la,lo)=>[ (lo-lon0)*sx, (lat0-la)*sy ];
+  svg.appendChild(el('rect',{x:0,y:0,width:W,height:H,fill:'#0a1119'}));
+  // graticule
+  for(let g=-180;g<=180;g+=z===0?30:(z===1?10:1)){const p=P(0,g);if(p[0]>=0&&p[0]<=W)svg.appendChild(el('line',{x1:p[0],y1:0,x2:p[0],y2:H,stroke:'#17202b','stroke-width':1}));}
+  for(let g=-90;g<=90;g+=z===0?30:(z===1?10:1)){const p=P(g,cLon);if(p[1]>=0&&p[1]<=H)svg.appendChild(el('line',{x1:0,y1:p[1],x2:W,y2:p[1],stroke:'#17202b','stroke-width':1}));}
+  // coastlines (clip to window)
+  COAST.forEach(poly=>{let d='';let started=false;for(const pt of poly){const la=pt[0],lo=pt[1];const p=P(la,lo);if(p[0]<-50||p[0]>W+50||p[1]<-50||p[1]>H+50){started=false;continue;}d+=(started?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)+' ';started=true;}if(d)svg.appendChild(el('path',{d,fill:'none',stroke:'#3a4a5a','stroke-width':z===0?0.6:1}));});
+  // overlay swatch near the pin
+  const ov=sv('vizOverlay');
+  if(ov!=='none'&&z>0){
+    let val,txt,col;
+    if(ov==='carbon'){val=n('ci');txt=fmt(val,0)+' gCO₂/kWh';col=val>500?'#f85149':val>250?'#d29922':'#3fb950';}
+    else if(ov==='water'){const cls=n('waterPrice');txt='water $'+fmt(cls,1)+'/m³';col=cls>2.5?'#f85149':cls>1.5?'#d29922':'#3fb950';}
+    else{txt='SAIDI '+fmt(n('saidi'),0)+' min';col=n('saidi')>500?'#f85149':n('saidi')>100?'#d29922':'#3fb950';}
+    const pp=P(lat,lon);svg.appendChild(el('circle',{cx:clamp(pp[0],20,W-20),cy:clamp(pp[1],20,H-20),r:60,fill:col,'fill-opacity':0.12,stroke:col,'stroke-width':1}));
+    svg.appendChild(el('text',{x:clamp(pp[0],20,W-20),y:clamp(pp[1],20,H-20)-66,fill:col,'font-size':12,'text-anchor':'middle'},txt));
+  }
+  // pin
+  const pp=P(lat,lon);const px=clamp(pp[0],6,W-6),py=clamp(pp[1],6,H-6);
+  svg.appendChild(el('line',{x1:px,y1:py-11,x2:px,y2:py,stroke:'#58a6ff','stroke-width':2}));
+  svg.appendChild(el('circle',{cx:px,cy:py-13,r:5,fill:'#58a6ff'}));
+  const site=(siteByKey($('sitePreset').value)||{}).name||'custom';
+  set('vizTitle','Location — '+site);
+  set('vizCaption',['Global','Region ~'+span+'°','Site ~'+span+'° window'][z]+' · '+fmt(lat,2)+', '+fmt(lon,2)+(ov!=='none'&&z>0?' · overlay: '+ov:''));
+  set('vizZoomLbl',['Global','Region','Site'][z]);
+}
+function drawPlan(r){
+  const svg=vizClear();const W=760,H=460;svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  svg.appendChild(el('rect',{x:0,y:0,width:W,height:H,fill:'#0a1119'}));
+  const siteA=r.siteA, grossA=r.grossA, white=r.units*n('rackm2');
+  // site square in metres → px
+  const sideM=Math.sqrt(siteA);const M=Math.min(W,H)-60;const s2p=M/sideM;const ox=(W-sideM*s2p)/2,oy=(H-sideM*s2p)/2;
+  const box=(xm,ym,wm,hm,fill,stroke,label)=>{const g=el('g',{});g.appendChild(el('rect',{x:ox+xm*s2p,y:oy+ym*s2p,width:wm*s2p,height:hm*s2p,fill,stroke,'stroke-width':1,rx:2}));if(label&&wm*s2p>40)g.appendChild(el('text',{x:ox+(xm+wm/2)*s2p,y:oy+(ym+hm/2)*s2p,fill:'#c7d0da','font-size':10,'text-anchor':'middle'},label));svg.appendChild(g);};
+  // site boundary
+  svg.appendChild(el('rect',{x:ox,y:oy,width:sideM*s2p,height:sideM*s2p,fill:'#0d1a12',stroke:'#2f4030','stroke-width':1.5}));
+  // building (gross) centred, area grossA
+  const bSide=Math.sqrt(grossA);const bx=(sideM-bSide)/2;
+  box(bx,bx*0.5,bSide,bSide*0.62,'#152232','#3a5570','white-space + MEP');
+  // yards: substation, generation, cooling, water — sized to fractions of remaining
+  const yardY=bx*0.5+bSide*0.62+2;const yw=bSide/4;
+  box(bx,yardY,yw-1,bSide*0.28,'#241d13','#8a6d1f','substation');
+  const mixHasGen=MIX.some(m=>['recip','aero','ccgt','ccgtccs','smr','micro','geo','pv','wind'].includes(m.opt));
+  box(bx+yw,yardY,yw-1,bSide*0.28,'#1c2413',mixHasGen?'#3fb950':'#30363d',mixHasGen?'on-site power':'(grid)');
+  box(bx+2*yw,yardY,yw-1,bSide*0.28,'#132024','#2f6d7d',(sv('cool')==='dlc'||sv('cool')==='imm')?'dry coolers':'cooling');
+  box(bx+3*yw,yardY,yw-1,bSide*0.28,'#101a24','#3a4a5a','water / fibre');
+  // scale bar (100 m)
+  const barM=Math.min(100,sideM/3);svg.appendChild(el('line',{x1:ox+6,y1:H-16,x2:ox+6+barM*s2p,y2:H-16,stroke:'#9da7b3','stroke-width':2}));
+  svg.appendChild(el('text',{x:ox+6,y:H-20,fill:'#9da7b3','font-size':11},fmt(barM,0)+' m'));
+  set('vizTitle','Above-site plan — '+fmt(n('mw'),0)+' MW '+sv('scale'));
+  set('vizCaption','site '+fmt(siteA/1e4,2)+' ha · building '+fmt(grossA,0)+' m² · white-space '+fmt(white,0)+' m² · '+sv('cool')+' cooling · '+r.units+' racks');
+}
+function drawBuild(r){
+  const svg=vizClear();const W=760,H=460;svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  svg.appendChild(el('rect',{x:0,y:0,width:W,height:H,fill:'#0a1119'}));
+  const stage=+sv('vizStage'); // 1..5
+  const layers=[
+    {n:1,label:'Shell & site',col:'#3a5570',y:360,h:70,note:fmt(r.grossA,0)+' m² gross, Tier '+sv('tier')},
+    {n:2,label:'Power path',col:mixColor(),y:290,h:60,note:powerLabel(r)},
+    {n:3,label:'Cooling — '+coolLabel(),col:'#2f6d7d',y:225,h:55,note:'PUE '+fmt(r.pue,2)+', κ '+coolK()},
+    {n:4,label:'Racks & rows',col:'#8a6d1f',y:150,h:65,note:r.prodUnits+' productive + '+(r.units-r.prodUnits)+' spare @ '+fmt(n('rkw'),0)+' kW'},
+    {n:5,label:'Network & fibre',col:'#58a6ff',y:95,h:45,note:'to IXP '+fmt(n('ixpKm'),0)+' km'},
+  ];
+  const cx=W/2;
+  layers.forEach(L=>{
+    const on=L.n<=stage;const w=520-(5-L.n)*30;
+    const g=el('g',{opacity:on?1:0.18});
+    g.appendChild(el('rect',{x:cx-w/2,y:L.y,width:w,height:L.h,rx:4,fill:L.col,'fill-opacity':0.22,stroke:L.col,'stroke-width':1.5}));
+    g.appendChild(el('text',{x:cx-w/2+10,y:L.y+20,fill:'#e6edf3','font-size':13,'font-weight':600},L.n+'. '+L.label));
+    g.appendChild(el('text',{x:cx-w/2+10,y:L.y+38,fill:'#9da7b3','font-size':11},L.note));
+    svg.appendChild(g);
+    if(L.n<5){const on2=(L.n+1)<=stage;svg.appendChild(el('line',{x1:cx,y1:L.y,x2:cx,y2:L.y-15,stroke:on2?'#596575':'#222b35','stroke-width':2}));}
+  });
+  // timeline binding note
+  svg.appendChild(el('text',{x:cx,y:445,fill:'#8f9aa6','font-size':11,'text-anchor':'middle'},'Time to power '+fmt(r.ttp,0)+' mo · binding: '+r.ttpKey+(r.gridOnly?'':' · '+(Number.isFinite(r.tPower)?'firm power '+fmt(r.tPower,0)+' mo':'mix short'))));
+  set('vizTitle','Build-up — assembly by design');
+  set('vizCaption','stage '+stage+'/5 · '+coolLabel()+' · '+powerLabel(r)+' · drawn top-down as the facility comes together');
+  set('vizStageLbl',stage===5?'All stages':'Through stage '+stage);
+}
+function coolLabel(){return {air:'air',rdhx:'rear-door',dlc:'direct-liquid',imm:'immersion'}[sv('cool')];}
+function coolK(){return {air:'0.35',rdhx:'0.22',dlc:'0.12',imm:'0.08'}[sv('cool')];}
+function mixColor(){return MIX.some(m=>['recip','aero','ccgt','ccgtccs','h2ready','sofc'].includes(m.opt))?'#d29922':MIX.some(m=>['smr','micro','nuccontract'].includes(m.opt))?'#a371f7':MIX.some(m=>['pv','wind','geo','hydro'].includes(m.opt))?'#3fb950':'#3a5570';}
+function powerLabel(r){const t=$('mixTemplate').value;const names={grid:'grid + backup',bridge:'gas bridge → grid',solarhyb:'solar + BESS + peaker',windflex:'wind + BESS + flexible grid',geo:'geothermal/hydro + grid',nuc:'nuclear/SMR + BESS',ccs:'CCGT+CCS + grid',custom:'custom mix'};return names[t]||'mix';}
+function drawScene(r){
+  const svg=vizClear();const W=760,H=460;svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  const a=archKind();
+  svg.appendChild(el('rect',{x:0,y:0,width:W,height:H,fill:'#0a1119'}));
+  if(a==='float'){
+    svg.appendChild(el('rect',{x:0,y:300,width:W,height:160,fill:'#0e2233'})); // sea
+    for(let i=0;i<W;i+=40)svg.appendChild(el('path',{d:'M'+i+' 300 q 10 -6 20 0 t 20 0',fill:'none',stroke:'#16384f','stroke-width':1}));
+    svg.appendChild(el('rect',{x:280,y:250,width:200,height:60,rx:4,fill:'#152232',stroke:'#3a5570','stroke-width':1.5})); // hull
+    svg.appendChild(el('text',{x:380,y:285,fill:'#c7d0da','font-size':12,'text-anchor':'middle'},'floating hull · '+fmt(n('mw'),0)+' MW'));
+    svg.appendChild(el('line',{x1:380,y1:310,x2:380,y2:420,stroke:'#2f6d7d','stroke-width':2}));svg.appendChild(el('text',{x:388,y:400,fill:'#79c0ff','font-size':10},'seawater cooling · WUE 0'));
+    svg.appendChild(el('line',{x1:480,y1:280,x2:700,y2:360,stroke:'#8a6d1f','stroke-width':1.5}));svg.appendChild(el('text',{x:560,y:330,fill:'#e3c46a','font-size':10},'subsea power+fibre '+fmt(n('archLandKm'),0)+' km'));
+  } else if(a==='sub'){
+    svg.appendChild(el('rect',{x:0,y:120,width:W,height:340,fill:'#0c1c2b'}));
+    svg.appendChild(el('rect',{x:0,y:430,width:W,height:30,fill:'#111a12'})); // seabed
+    svg.appendChild(el('rect',{x:300,y:380,width:160,height:44,rx:22,fill:'#152232',stroke:'#3a5570','stroke-width':1.5})); // vessel
+    svg.appendChild(el('text',{x:380,y:407,fill:'#c7d0da','font-size':12,'text-anchor':'middle'},'sealed vessel'));
+    svg.appendChild(el('line',{x1:380,y1:380,x2:700,y2:130,stroke:'#8a6d1f','stroke-width':1.5}));svg.appendChild(el('text',{x:520,y:250,fill:'#e3c46a','font-size':10},'cable to shore '+fmt(n('archLandKm'),0)+' km'));
+    svg.appendChild(el('text',{x:380,y:360,fill:'#79c0ff','font-size':10,'text-anchor':'middle'},'no in-situ service · refresh = vessel swap · WUE 0'));
+  } else if(a==='mtn'){
+    svg.appendChild(el('path',{d:'M0 460 L240 140 L360 300 L520 90 L760 460 Z',fill:'#14201a',stroke:'#2f4030','stroke-width':1}));
+    svg.appendChild(el('ellipse',{cx:520,cy:110,rx:44,ry:14,fill:'#123047',stroke:'#3a5570'})); // upper reservoir
+    svg.appendChild(el('text',{x:520,y:95,fill:'#79c0ff','font-size':10,'text-anchor':'middle'},'upper reservoir'));
+    svg.appendChild(el('ellipse',{cx:300,cy:400,rx:60,ry:16,fill:'#123047',stroke:'#3a5570'})); // lower
+    svg.appendChild(el('text',{x:300,y:424,fill:'#79c0ff','font-size':10,'text-anchor':'middle'},'lower reservoir'));
+    svg.appendChild(el('line',{x1:512,y1:120,x2:320,y2:388,stroke:'#2f6d7d','stroke-width':3}));svg.appendChild(el('text',{x:430,y:250,fill:'#7ee2a0','font-size':10},'head '+fmt(n('phHead'),0)+' m'));
+    // PV array
+    for(let i=0;i<5;i++)svg.appendChild(el('rect',{x:120+i*22,y:330+i*4,width:18,height:10,fill:'#1c2413',stroke:'#3fb950'}));
+    svg.appendChild(el('text',{x:150,y:325,fill:'#3fb950','font-size':10},'solar → pump uphill'));
+    svg.appendChild(el('rect',{x:560,y:300,width:120,height:50,rx:4,fill:'#152232',stroke:'#3a5570'}));svg.appendChild(el('text',{x:620,y:330,fill:'#c7d0da','font-size':11,'text-anchor':'middle'},'datacenter'));
+    svg.appendChild(el('text',{x:W/2,y:24,fill:'#e6edf3','font-size':13,'text-anchor':'middle'},'Stored energy '+fmt(phStoredMWh2(),0)+' MWh = ρgHVη · firm '+fmt(phStoredMWh2()/Math.max(1,r.facMW),1)+' h at load'));
+  }
+  set('vizTitle','Siting scene — '+ARCH[a].label);
+  set('vizCaption',a==='mtn'?('head '+fmt(n('phHead'),0)+' m · usable '+fmt(n('phVol'),0)+'k m³ · η '+fmt(n('phEff'),2)+' → '+fmt(phStoredMWh2(),0)+' MWh stored'):(ARCH[a].note));
+}
+function drawViz(r){if(!r)return;const v=sv('vizView');if(v==='scene')drawScene(r);else if(v==='zoom')drawZoom(r);else if(v==='plan')drawPlan(r);else drawBuild(r);}
+
+
+
+
+
+// ---------- WP6 helpers ----------
+function curPlatform(){return PLATFORMS.find(p=>p.id===sv('platform'))||PLATFORMS[0];}
+function curModel(){return MODELS.find(m=>m.id===sv('model'))||MODELS[0];}
+function replicasPerUnit(pf,md){ // memory-limited replica count on one unit
+  if(md.tot==null)return 1; // proprietary: unknown, treat as 1 (lessor regime ignores throughput)
+  const totalHBM=pf.acc*pf.hbm; if(totalHBM<=0)return Math.max(1,Math.round(pf.acc/8)); // wafer/LPU: rough
+  const weights=md.act*md.pb; // GB for active params (MoE serves active set per token, weights resident ~ total; use total for footprint)
+  const resident=md.tot*md.pb;
+  const per=resident+ md.kv*8; // GB per replica incl. a KV allowance
+  return Math.max(1,Math.floor(totalHBM/per));
+}
+function derivedTPSMW(pf,md){
+  const cell=THROUGHPUT[pf.id+'|'+md.id]; if(cell)return {v:cell,ref:true};
+  // Anchor: GB300 serving a ~17B-active MoE ≈ 2.8M tok/s/MW. Scale from there.
+  // Platform factor: per-MW compute throughput relative to GB300, proxied by accelerators×HBM bandwidth class.
+  const gb=PLATFORMS.find(p=>p.id==='gb300');
+  const platMW=pf.kw*(1+n('itoh')/100)/1000, gbMW=gb.kw*(1+n('itoh')/100)/1000;
+  // relative per-unit capability ~ acc count × HBM per acc (bandwidth proxy), normalized to GB300, per MW
+  const cap=(pf.acc*Math.max(pf.hbm,32))/(gb.acc*gb.hbm);
+  const platFactor=(cap/(platMW/gbMW)); // capability per MW relative to GB300
+  // Model factor: throughput scales inversely with active params vs the 17B anchor (decode is memory-bandwidth bound on active weights)
+  const act=md.act||md.tot||40; const modelFactor=17/Math.max(4,act);
+  const anchor=2800000;
+  const v=anchor*platFactor*modelFactor*(n('maturity')/1.0);
+  return {v:Math.max(50000,Math.round(v)),ref:false};
+}
+function residualAt(pf,months){const b=pf.res[sv('residualBand')]||pf.res.mid;const idx=clamp(months/12,0,5);const lo=Math.floor(idx),hi=Math.min(5,lo+1);const a=lo===0?100:b[lo-1],c=hi===0?100:b[hi-1];return (a+(c-a)*(idx-lo))/100;}
+
 function calc(){
   if(!SILENT&&!OV&&$('mixTemplate').value!=='custom'){const key=$('mixTemplate').value;const L=loadMW();MIX=(TEMPLATES[key]||TEMPLATES.grid)(L).map(([opt,mw,order])=>({opt,mw:Math.ceil(mw),order}));renderMix();}
   const years=Math.max(1,n('years')), rate=n('disc')/100, AF=pvFactor(rate,years);
-  const c=COOL[sv('cool')], tier=TIER[sv('tier')];
+  const arch=sv('arch'), archOn=arch!=='land';
+  let c=COOL[sv('cool')], tier=TIER[sv('tier')];
+  if(ARCH[arch].cool==='sea'){c=Object.assign({},c,{k:0.04});} // seawater once-through: minimal cooling overhead
+  const tier0=tier;
   // compute block
   const rkw=n('rkw'), prodUnits=Math.ceil(n('mw')*1000/rkw), spareUnits=Math.ceil(prodUnits*n('spare')/100), units=prodUnits+spareUnits;
   const prodMW=prodUnits*rkw/1000, instMW=units*rkw/1000, itMW=instMW*(1+n('itoh')/100);
+  const pf=curPlatform(), md=curModel();
+  let tpsInfo={v:n('tpsmw'),ref:false};
+  if(sv('tpsMode')!=='manual'){tpsInfo=derivedTPSMW(pf,md);}
+  const tpsmw=tpsInfo.v;
   const util=clamp(n('util')/100,.01,1);
   const pue=sv('pueMode')==='manual'?n('pueManual'):derivedPUE();
   const facMW=itMW*pue;
-  const computeCost=units*n('rcost')*1e6;
+  const duty=n('dutyAccel')/100;
+  const computeCost=units*n('rcost')*1e6*(1+duty);
   // facility CAPEX
   const white=units*n('rackm2'), grossA=white*n('gross'), siteA=grossA*n('siteRatio');
   let rows=[], facCapex=0;
@@ -556,11 +878,22 @@ function calc(){
     rows.push(['Facility (single $/MW basis)',facCapex,'scenario']);
   }else{
     const cci=n('cci');
-    const landC=siteA*n('land'), prep=siteA*n('siteprep')*cci, shell=grossA*n('shell')*cci, mep=itMW*n('mep')*1e6*tier.mep*cci, cool=itMW*n('coolCap')*1e6, ic=facMW*n('icCost')*1e6, fit=units*n('fitout')*1e3, fibre=n('fibreFixed')*1e6+n('ixpKm')*60e3;
-    const hard=prep+shell+mep+cool+ic+fit+fibre;
+    const mep=itMW*n('mep')*1e6*tier.mep*cci, cool=itMW*n('coolCap')*1e6, ic=facMW*n('icCost')*1e6, fit=units*n('fitout')*1e3;
+    let landC,prep,shell,fibre,structRow=null,civilRow=0;
+    if(archOn){
+      const struct=itMW*n('archStruct')*1e6; landC=0;prep=0;shell=0;
+      fibre=n('fibreFixed')*1e6+ (arch==='mtn'?n('ixpKm'):n('archLandKm'))*60e3;
+      structRow=struct;
+      if(arch==='mtn')civilRow=n('phCivil')*1e6;
+    } else {
+      landC=siteA*n('land'); prep=siteA*n('siteprep')*cci; shell=grossA*n('shell')*cci; fibre=n('fibreFixed')*1e6+n('ixpKm')*60e3;
+    }
+    const hard=(structRow||0)+prep+shell+mep+cool+ic+fit+fibre+civilRow;
     const soft=hard*n('soft')/100, cont=hard*n('cont')/100;
     facCapex=landC+hard+soft+cont;
-    rows.push(['Land',landC,'referential'],['Site preparation',prep,'baseline'],['Shell',shell,'baseline'],['MEP (tier-scaled)',mep,'baseline'],['Cooling plant',cool,'baseline'],['Interconnection + substation',ic,'baseline'],['Fit-out',fit,'baseline'],['Fibre entry',fibre,'baseline'],['Soft costs',soft,'baseline'],['Contingency',cont,'baseline']);
+    if(archOn){rows.push([ARCH[arch].label+' structure',structRow,'baseline']);if(civilRow)rows.push(['Reservoir + civil works',civilRow,'baseline']);}
+    else {rows.push(['Land',landC,'referential'],['Site preparation',prep,'baseline'],['Shell',shell,'baseline']);}
+    rows.push(['MEP (tier-scaled)',mep,'baseline'],['Cooling plant',cool,'baseline'],['Interconnection + substation',ic,'baseline'],['Fit-out',fit,'baseline'],['Fibre / landing',fibre,'baseline'],['Soft costs',soft,'baseline'],['Contingency',cont,'baseline']);
   }
   const genCapex=MIX.reduce((a,r)=>{const o=POWER_OPTIONS.find(x=>x.id===r.opt);return o&&eligible(o)&&o.capex?a+r.mw*1000*o.capex:a;},0);
   if(genCapex>0){facCapex+=genCapex;rows.push(['On-site generation & storage (mix)',genCapex,'referential']);}
@@ -572,10 +905,11 @@ function calc(){
   let avail;
   if(sv('availMode')==='manual')avail=clamp(n('tAvail')/100,.01,1);
   else{const backup=tier.a>=.9998?1:.8;avail=clamp(tier.a-Math.max(0,n('saidi')/525600*(1-backup)),.5,1);}
+  if(archOn)avail=clamp(avail-n('archDown')/100,.3,1);
   // energy and opex per period (year), with trajectories
   const L=clamp(n('idle')+(1-n('idle'))*util,0,1);
   const energyMWh=itMW*pue*8760*L;
-  const waterM3=itMW*1000*8760*L*parseFloat(sv('evap'))*(1-clamp(n('ffree'),0,1))/1000; // L/kWh_IT × kWh → L → m³
+  const waterM3=(ARCH[arch].wue===0)?0:itMW*1000*8760*L*parseFloat(sv('evap'))*(1-clamp(n('ffree'),0,1))/1000; // L/kWh_IT × kWh → L → m³
   // timeline first (dispatch availability depends on it)
   const permit=n('permit'), q=n('qpf')>0?1:0;
   const cand={};
@@ -597,7 +931,7 @@ function calc(){
     const water=waterM3*n('waterPrice')*Math.pow(1.03,y);
     let fixed;
     if(sv('opexMode')==='single')fixed=facCapex*n('tOpex')/100;
-    else fixed=facCapex*(n('maint')+n('ptax')+n('ins')+n('sec'))/100+itMW*n('fteMW')*n('fteCost')*1e3;
+    else fixed=facCapex*(n('maint')+(archOn?n('archMaint'):0)+n('ptax')+n('ins')+n('sec'))/100+itMW*n('fteMW')*n('fteCost')*1e3;
     const capEff=sv('opexMode')==='single'?0:cap;
     const total=energy+capEff+carbon+water+fixed;
     co2Total+=co2t; waterTotal+=waterM3;
@@ -608,14 +942,32 @@ function calc(){
   if(n('tariffEsc')===0&&n('ciEsc')===0&&waterM3===0)pvOps=ops1.total*AF;
   // compute refresh, straight-line salvage as orbital
   const refresh=Math.max(1,n('refresh'));
-  const salvage=(cost,t,interval)=>{const unused=clamp((t+interval-years)/interval,0,1);return cost*unused/Math.pow(1+rate,years)};
+  const strat=sv('refreshStrat');
+  const facSalvage=(cost,t,interval)=>{const unused=clamp((t+interval-years)/interval,0,1);return cost*unused/Math.pow(1+rate,years)};
+  // refresh cost by platform granularity: rack full unit; server keeps racks/PDU (~85% of unit); component keeps host (~60%)
+  const granFactor=pf.gran==='server'?0.85:pf.gran==='cloud'?1:1.0;
+  const refreshUnitCost=computeCost*granFactor;
   let pv=capex0+pvOps;
-  for(let t=refresh;t<years;t+=refresh)pv+=computeCost/Math.pow(1+rate,t)-salvage(computeCost,t,refresh);
-  pv-=salvage(facCapex,0,Math.max(1,n('tFacLife')));
+  if(strat==='line'){
+    const salvage=(cost,t,interval)=>{const unused=clamp((t+interval-years)/interval,0,1);return cost*unused/Math.pow(1+rate,years)};
+    for(let t=refresh;t<years;t+=refresh)pv+=computeCost/Math.pow(1+rate,t)-salvage(computeCost,t,refresh);
+  } else {
+    const stepYrs=strat==='rotate'?Math.max(1,n('sellMonth')/12):refresh;
+    for(let t=stepYrs;t<years;t+=stepYrs){
+      const held=stepYrs*12;
+      const resid=residualAt(pf,strat==='rotate'?n('sellMonth'):refresh*12);
+      pv+=refreshUnitCost/Math.pow(1+rate,t) - computeCost*resid/Math.pow(1+rate,t);
+    }
+    // terminal residual on the last cohort still within economic life
+    const lastBuy=Math.floor((years-1e-9)/((strat==='rotate'?Math.max(1,n('sellMonth')/12):refresh)))*(strat==='rotate'?Math.max(1,n('sellMonth')/12):refresh);
+    const ageM=(years-lastBuy)*12; pv-=computeCost*residualAt(pf,ageM)/Math.pow(1+rate,years);
+  }
+  pv-=facSalvage(facCapex,0,Math.max(1,n('tFacLife')));
   if(sv('opexMode')!=='single')pv+=facCapex*n('decom')/100/Math.pow(1+rate,years);
   const annual=pv/AF;
-  const tokensYear=n('tpsmw')*prodMW*util*avail*YEARSEC;
-  const tokenCost=annual/Math.max(1,tokensYear)*1e6;
+  const tokensYear=tpsmw*prodMW*util*avail*YEARSEC;
+  const licRd=(n('licenceFee')+(sv('regime')==='ownmodel'?n('rdAlloc'):0)); // $/1M tokens added directly
+  const tokenCost=annual/Math.max(1,tokensYear)*1e6 + licRd;
   const gpuh=annual/(prodUnits*n('gpus')*8760*util*avail);
   const kwmo=(facCapex/pvFactor(rate,Math.max(1,n('tFacLife')))+(ops1.fixed))/(itMW*1000*12);
   const capexPerMW=capex0/itMW;
@@ -651,9 +1003,16 @@ function calc(){
   if(gridOnly&&n('queue')>=60)w.push('Interconnection queue of '+fmt(n('queue'),0)+' months with a grid-only mix: try the gas-bridge or contract templates.');
   if(sv('scale')==='campus'&&n('mw')<100)w.push('Campus regime selected with less than 100 MW; phasing and on-site generation options assume campus scale.');
   if(sv('scale')==='hall'&&n('mw')>60)w.push('Hall regime with '+fmt(n('mw'),0)+' MW; consider the campus regime.');
+  if(pf.exp==='cloud-only'&&sv('regime')==='openweight')w.push(pf.name+' is cloud-only and not purchasable for a self-built open-weight facility; use the lessor/enterprise regime or a purchasable platform.');
+  if(md.lic==='prop'&&sv('regime')!=='lessor')w.push(md.name+' is proprietary and cannot be self-hosted; only the lessor regime (leasing capacity to its owner) applies.');
+  if(pf.avail>n('startYear'))w.push(pf.name+' earliest availability '+pf.avail+' is after project start '+fmt(n('startYear'),0)+'.');
   const st=$('status');st.innerHTML='<strong>'+(w.length?'Model cautions':'Scenario passes basic checks')+'</strong>'+(w.length?'<br>'+w.map(x=>'• '+x).join('<br>'):'');
   st.style.borderLeftColor=w.some(x=>x.includes('exceeds'))?'var(--bad)':'var(--warn)';
-  set('unitsOut',fmt(units,0)+' units ('+fmt(prodUnits,0)+' productive + '+fmt(spareUnits,0)+' spare) · '+fmt(itMW,2)+' MW IT incl. overhead');
+  set('unitsOut',fmt(units,0)+' '+pf.gran+' units ('+fmt(prodUnits,0)+' productive + '+fmt(spareUnits,0)+' spare) · '+fmt(itMW,2)+' MW IT incl. overhead');
+  set('tpsOut',fmt(tpsmw/1e6,2)+'M tok/s/MW '+(sv('tpsMode')==='manual'?'(manual)':tpsInfo.ref?'(referential cell)':'(derived: platform×model scaling from the GB300 anchor × maturity '+fmt(n('maturity'),2)+')'));
+  {const lb=$('lab_tpsmw');if(lb){lb.textContent=sv('tpsMode')==='manual'?'scenario':tpsInfo.ref?'referential':'derived';lb.className='badge '+(sv('tpsMode')==='manual'?'scenario':tpsInfo.ref?'ref':'derived');}}
+  set('platformNote',pf.name+' · '+pf.gran+'-level · '+pf.acc+' acc × '+pf.hbm+' GB · '+pf.cool.toUpperCase()+' · export: '+pf.exp+(pf.exp==='cloud-only'?' (not purchasable — lessor/enterprise only)':pf.exp==='region-restricted'?' (check licensing for this jurisdiction)':'')+' · residual '+sv('residualBand')+' band');
+  set('regimeNote',{openweight:'Serve public open-weights; zero licence unless the model requires one; revenue = open-weight market price.',ownmodel:'Operator owns the model; R&D allocation applies; revenue = frontier list price.',lessor:'Lease capacity; no model risk; revenue = $/GPU-hour or $/kW-month; throughput not the operator\'s concern.',enterprise:'Own use; avoided external spend; utilization often lower.'}[sv('regime')]);
   set('pueOut',fmt(derivedPUE(),3)+(sv('pueMode')==='manual'?' (not in use — manual)':''));
   // provenance
   const s=siteByKey(sel.value)||currentSiteRecord();
@@ -673,6 +1032,7 @@ function calc(){
   if(dispatch.some(d=>d.shortfall>0))w.push('Shortfall in some operating years: unserved load is priced at 3× tariff as a penalty; resize the mix.');
   st.innerHTML='<strong>'+(w.length?'Model cautions':'Scenario passes basic checks')+'</strong>'+(w.length?'<br>'+w.map(x=>'• '+x).join('<br>'):'');
   runSensitivity(results);
+  try{drawViz(results);}catch(e){}
   return results;
 }
 
@@ -698,7 +1058,16 @@ $('calc').addEventListener('click',calc);
 $('reset').addEventListener('click',()=>{Object.entries(base).forEach(([id,v])=>{const e=$(id);if(e&&e.type!=='file')e.value=v;});applySite($('sitePreset').value);applyTemplate('grid');calc();});
 $('mixTemplate').addEventListener('change',()=>{if($('mixTemplate').value!=='custom')applyTemplate($('mixTemplate').value);calc();});
 $('mixAdd').addEventListener('click',()=>{MIX.push({opt:'pv',mw:10,order:0});$('mixTemplate').value='custom';renderMix();calc();});
-$('download').addEventListener('click',()=>{const o={model:'terrestrial_ai_datacenter',version:'0.4',site:$('sitePreset').value,inputs:{},mix:MIX,overrides:Object.keys(siteOverrides),results:lastData?{tokenCost:lastData.tokenCost,capexPerMW:lastData.capexPerMW,pue:lastData.pue,ttp:lastData.ttp,binding:lastData.ttpKey}:null};document.querySelectorAll('input,select').forEach(e=>{if(e.type==='file')return;o.inputs[e.id]=e.type==='number'?Number(e.value):e.value;});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));a.download='terrestrial-ai-scenario.json';a.click();URL.revokeObjectURL(a.href);});
+
+['vizView','vizZoom','vizOverlay','vizStage'].forEach(id=>$(id).addEventListener('input',()=>{if(lastData)drawViz(lastData);}));
+$('vizPop').addEventListener('click',()=>{
+  const svg=$('vizSvg').outerHTML;const css=document.querySelector('style').textContent;
+  const w=window.open('','_blank','width=820,height=560');if(!w)return;
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+$('vizTitle').textContent+'</title><style>'+css+'body{padding:12px}</style></head><body><h3 style="margin:4px 0">'+$('vizTitle').textContent+'</h3><div class="muted" style="font-size:12px;margin-bottom:8px">'+$('vizCaption').textContent+'</div>'+svg+'</body></html>');
+  w.document.close();
+});
+
+$('download').addEventListener('click',()=>{const o={model:'terrestrial_ai_datacenter',version:'0.8',site:$('sitePreset').value,inputs:{},mix:MIX,overrides:Object.keys(siteOverrides),results:lastData?{tokenCost:lastData.tokenCost,capexPerMW:lastData.capexPerMW,pue:lastData.pue,ttp:lastData.ttp,binding:lastData.ttpKey}:null};document.querySelectorAll('input,select').forEach(e=>{if(e.type==='file')return;o.inputs[e.id]=e.type==='number'?Number(e.value):e.value;});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));a.download='terrestrial-ai-scenario.json';a.click();URL.revokeObjectURL(a.href);});
 
 // ---------- break-even ----------
 $('breakeven').addEventListener('click',()=>{$('beBox').style.display='block';solveBreakeven();});
@@ -726,10 +1095,10 @@ function runTests(){
   const hv=haversineKm(50.11,8.68,52.37,4.90);add('Haversine Frankfurt→Amsterdam','~364 km',fmt(hv,0)+' km',approx(hv,364,.02));
   const wb=wetBulbStull(30,50);add('Wet-bulb (Stull) 30 °C, 50% RH','~22.0 °C',fmt(wb,1)+' °C',approx(wb,22.0,.03));
   // parity with orbital §21 terrestrial stub: 1 MW, 10% spares, single facility 12 $M/MW, PUE 1.3, $80 flat, 4% opex, 99.5%, horizon 10, refresh 3, L=U (a=0)
-  const savedSel={};['facMode','opexMode','pueMode','availMode'].forEach(id=>{savedSel[id]=$(id).value;});
-  $('facMode').value='single';$('opexMode').value='single';$('pueMode').value='manual';$('availMode').value='manual';
+  const savedSel={};['facMode','opexMode','pueMode','availMode','tpsMode','refreshStrat','arch'].forEach(id=>{savedSel[id]=$(id).value;});
+  $('facMode').value='single';$('opexMode').value='single';$('pueMode').value='manual';$('availMode').value='manual';$('tpsMode').value='manual';$('refreshStrat').value='line';$('arch').value='land';
   const savedMix=JSON.parse(JSON.stringify(MIX));applyTemplate('grid');MIX=[{opt:'grid',mw:2,order:0}];
-  let par;SILENT=true;try{OV={mw:1,spare:10,tFac:12,pueManual:1.3,tariff:80,tariffEsc:0,ciEsc:0,tOpex:4,tAvail:99.5,years:10,disc:8,refresh:3,tFacLife:15,rcost:4,itoh:10,util:75,tpsmw:2800000,idle:0,incentive:0,co2:0,rkw:135,gpus:72};par=calc().tokenCost;}finally{OV=null;SILENT=false;Object.entries(savedSel).forEach(([id,v])=>$(id).value=v);}
+  let par;SILENT=true;try{OV={mw:1,spare:10,tFac:12,pueManual:1.3,tariff:80,tariffEsc:0,ciEsc:0,tOpex:4,tAvail:99.5,years:10,disc:8,refresh:3,tFacLife:15,rcost:4,itoh:10,util:75,tpsmw:2800000,idle:0,incentive:0,co2:0,rkw:135,gpus:72,licenceFee:0,rdAlloc:0,dutyAccel:0,maturity:1};par=calc().tokenCost;}finally{OV=null;SILENT=false;Object.entries(savedSel).forEach(([id,v])=>$(id).value=v);}
   add('Orbital parity: terrestrial stub inputs → $/1M tokens','$0.247 (orbital §21)','$'+fmt(par,4),approx(par,.247,.002));
   // LCOE closed form: recips at 90% CF
   const rc=POWER_OPTIONS.find(o=>o.id==='recip');let lc;SILENT=true;try{OV={gasPrice:40,fuelEsc:0,co2:0,disc:8};lc=optLCOE(rc,0,.9,.08);}finally{OV=null;SILENT=false;}
@@ -744,7 +1113,8 @@ function runTests(){
   add('Composition: §10.2 stack, US avg, Tier III, air, grid-only (gensets priced in the mix)','≈ $12M / MW IT (±5%)','$'+fmt(comp,2)+'M',approx(comp,12,.05));
   // layout: no horizontal overflow at narrow width is a browser check; report viewport
   const tagged=[...document.querySelectorAll('[data-test-id],[data-test-out]')];const missReq=tagged.filter(e=>!e.dataset.testKind||!e.dataset.testTab||!e.dataset.testLabel);const untagged=[...document.querySelectorAll('.pane input,.pane select,.pane button,.actions button')].filter(e=>e.id&&!e.dataset.testId);add('Testability: interactive elements + readouts tagged with required data-test-* attrs','0 untagged / 0 missing',untagged.length+' untagged / '+missReq.length+' missing',untagged.length===0&&missReq.length===0);
-  const rt=(()=>{const before=JSON.stringify(currentSiteRecord('rt'));const j=toJurisdiction(currentSiteRecord('rt'));const back=fromJurisdiction(Object.assign({},j,{id:'__rt'}));return Object.keys(J2F).every(k=>!currentSiteRecord('rt').f[k]||Math.abs(back.f[k][0]-currentSiteRecord('rt').f[k][0])<1e-9);})();add('Site record round-trip: preset → jurisdiction JSON → preset','values preserved',String(rt),rt);
+  const rt=(()=>{const before=JSON.stringify(currentSiteRecord('rt'));const j=toJurisdiction(currentSiteRecord('rt'));const back=fromJurisdiction(Object.assign({},j,{id:'__rt'}));return Object.keys(J2F).every(k=>!currentSiteRecord('rt').f[k]||Math.abs(back.f[k][0]-currentSiteRecord('rt').f[k][0])<1e-9);})();(function(){const sv0={p:$('platform').value,m:$('model').value,mode:$('tpsMode').value};$('platform').value='gb300';$('model').value='llama4sco';$('tpsMode').value='auto';let dv;SILENT=true;try{dv=calc();}finally{SILENT=false;}const pf=PLATFORMS.find(x=>x.id==='gb300'),md=MODELS.find(x=>x.id==='llama4sco');const d=derivedTPSMW(pf,md).v;$('platform').value=sv0.p;$('model').value=sv0.m;$('tpsMode').value=sv0.mode;calc();add('Throughput derivation: GB300 × 17B-active model within ±30% of the 2.8M referential cell','2.0–3.6M tok/s/MW',fmt(d/1e6,2)+'M',Math.abs(d-2.8e6)<=0.3*2.8e6);})();
+  add('Site record round-trip: preset → jurisdiction JSON → preset','values preserved',String(rt),rt);
   const ov=document.documentElement.scrollWidth<=window.innerWidth+1;add('Layout: no horizontal overflow at current viewport ('+window.innerWidth+' px)','true',String(ov),ov);
   calc();
   const pass=rows.filter(r=>r.ok).length;
@@ -789,9 +1159,19 @@ $('specFile').addEventListener('change',e=>{const f=e.target.files&&e.target.fil
 document.addEventListener('keydown',e=>{if(e.key==='Escape')$('specModal').style.display='none';});
 
 // ---------- testability tags (shared convention with the orbital tool) ----------
-document.querySelectorAll('.pane').forEach(p=>{const tab=p.id;p.querySelectorAll('input,select,button,output').forEach(e=>{if(!e.id)return;const lab=e.previousElementSibling&&e.previousElementSibling.tagName==='LABEL'?e.previousElementSibling.textContent.replace(/\s*(anchor|referential|baseline|scenario|derived)$/,'').trim():e.textContent.trim();e.dataset.testId=e.id;e.dataset.testKind=e.tagName==='OUTPUT'?'readout':e.tagName==='BUTTON'?'action':e.type==='number'?'number':e.type==='text'?'text':e.type==='file'?'file':'select';e.dataset.testTab=tab;e.dataset.testLabel=lab||e.getAttribute('title')||e.id;});});
+document.querySelectorAll('.pane').forEach(p=>{const tab=p.id;p.querySelectorAll('input,select,button,output').forEach(e=>{if(!e.id)return;const lab=e.previousElementSibling&&e.previousElementSibling.tagName==='LABEL'?e.previousElementSibling.textContent.replace(/\s*(anchor|referential|baseline|scenario|derived)$/,'').trim():e.textContent.trim();e.dataset.testId=e.id;e.dataset.testKind=e.tagName==='OUTPUT'?'readout':e.tagName==='BUTTON'?'action':e.type==='number'?'number':e.type==='range'?'number':e.type==='text'?'text':e.type==='file'?'file':'select';e.dataset.testTab=tab;e.dataset.testLabel=lab||e.getAttribute('title')||e.id;});});
 document.querySelectorAll('.actions button, #beBox select, #beBox input, #beBox button, #testBox button, #specModal button, #specModal input').forEach(e=>{if(!e.id)return;e.dataset.testId=e.id;e.dataset.testKind=e.tagName==='BUTTON'?'action':e.type==='file'?'file':e.tagName==='SELECT'?'select':'number';e.dataset.testTab=e.closest('#beBox')?'modal:breakeven':e.closest('#specModal')?'modal:spec':'global';e.dataset.testLabel=(e.getAttribute('title')||e.textContent.trim()||e.id);});
-document.querySelectorAll('.metric .v, .metric .l, .call, #tornadoNote, #footerNote').forEach(e=>{if(!e.id)return;e.dataset.testId=e.id;e.dataset.testKind='readout';e.dataset.testTab='results';e.dataset.testLabel=((e.parentElement.querySelector('.l')||e).textContent.trim())||e.id;});
+document.querySelectorAll('.metric .v, .metric .l, .call, #tornadoNote, #footerNote, #vizTitle, #vizCaption, #archNote, #siteNote, #dataStatus, #platformNote, #regimeNote').forEach(e=>{if(!e.id)return;e.dataset.testId=e.id;e.dataset.testKind='readout';e.dataset.testTab=(e.id==='vizTitle'||e.id==='vizCaption')?'visuals':(e.id==='archNote'||e.id==='siteNote'||e.id==='dataStatus')?'site':(e.id==='platformNote'||e.id==='regimeNote')?'compute':'results';e.dataset.testLabel=({vizTitle:'Graphical model title',vizCaption:'Graphical model caption',archNote:'Archetype description',siteNote:'Site preset summary',dataStatus:'Data source status',platformNote:'Platform description',regimeNote:'Regime description'}[e.id])||((e.parentElement.querySelector('.l')||e).textContent.trim())||e.id;});
+
+// populate compute catalogs
+(function(){const ps=$('platform');PLATFORMS.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name+(p.exp==='cloud-only'?' — cloud-only':p.exp==='region-restricted'?' — restricted':'');ps.appendChild(o);});
+ const ms=$('model');MODELS.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.name+(m.lic==='prop'?' — proprietary':'');ms.appendChild(o);});
+ ps.value='gb300';ms.value='llama4mav';})();
+function applyPlatform(){const p=curPlatform();$('rkw').value=p.kw;$('gpus').value=p.acc;$('hbm').value=p.hbm;$('rcost').value=p.cost;$('maturity').value=p.mat;if(p.cool==='air'&&['dlc','imm','rdhx'].includes($('cool').value)){}else if(p.cool==='dlc'&&$('cool').value==='air'){$('cool').value='dlc';}
+ ['lab_rkw','lab_rcost'].forEach(id=>{const e=$(id);});}
+$('platform').addEventListener('change',()=>{applyPlatform();calc();});
+['model','regime','tpsMode','residualBand','refreshStrat','maturity'].forEach(id=>$(id).addEventListener('change',calc));
+
 applyTemplate('grid');
 if(new URLSearchParams(location.search).has('test')){calc();runTests();}
 calc();
