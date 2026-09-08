@@ -3,8 +3,8 @@
  "meta": {
   "target": "Terrestrial AI Data Center Siting and Economics Model",
   "url": "https://lballaty.github.io/TerrestrialDatacenterSim/",
-  "app_version_at_authoring": "v1.3",
-  "catalog_version": "3.2.0",
+  "app_version_at_authoring": "v1.4",
+  "catalog_version": "3.3.0",
   "authored": "2026-09-05",
   "author": "Test plan generated for Libor Ballaty (Arion Networks s.r.o.)",
   "status": "Feature-complete; reference values pending audit",
@@ -91,6 +91,11 @@
     "id": "testClose",
     "tab": "global",
     "label": "Close"
+   },
+   {
+    "id": "openPlanned",
+    "tab": "global",
+    "label": "Planned builds"
    }
   ],
   "tabs": [
@@ -2019,6 +2024,18 @@
     "tab": "site",
     "label": "Import site JSON",
     "kind": "file"
+   },
+   {
+    "id": "plannedClose",
+    "tab": "modal:planned",
+    "label": "Close planned builds",
+    "kind": "action"
+   },
+   {
+    "id": "plannedFile",
+    "tab": "modal:planned",
+    "label": "Load planned-builds file",
+    "kind": "file"
    }
   ],
   "render_surfaces": [
@@ -2222,6 +2239,12 @@
    "id": "S21",
    "name": "Shared compute catalog",
    "proves": "Class-based throughput matches the orbital tool (R45); model and stack selection drive cost correctly (R46); interactivity scales as specified (R47).",
+   "type": "functional+validity"
+  },
+  {
+   "id": "S22",
+   "name": "Planned builds",
+   "proves": "Panel opens, shows as-of date, tabulates projects with confidence badges, expands per-row sources; graceful message when the data file is absent (file:// or not yet generated).",
    "type": "functional+validity"
   }
  ],
@@ -2519,6 +2542,12 @@
    "name": "Two-axis visuals render",
    "check": "Every Scale×Style combination (rack/hall/site × concept/technical, plus zoom and scene) draws SVG nodes without error; rack shows accelerator trays/callouts, hall shows rack rows, site technical = engineering sheet, site concept = campus massing. Mirrors the orbital Single/Cluster/System × Concept/Technical structure.",
    "severity": "medium"
+  },
+  {
+   "id": "R50",
+   "name": "Planned builds provenance",
+   "check": "The Planned builds panel loads data/planned_terrestrial.json, shows the generated (as-of) date, renders one row per project, and every field carries a known/reported/inferred badge; per-row details expose source URLs (known/reported) or reasoning notes (inferred). No field renders without a confidence tag.",
+   "severity": "medium"
   }
  ],
  "oracle": {
@@ -2633,7 +2662,8 @@
    "fleet",
    "demand",
    "risk",
-   "compare"
+   "compare",
+   "modal:planned"
   ],
   "optional": [
    "data-test-unit",
