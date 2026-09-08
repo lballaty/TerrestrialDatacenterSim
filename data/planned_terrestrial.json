@@ -1,0 +1,457 @@
+{
+ "schema": "planned-terrestrial/1.0",
+ "generated": "2026-09-08",
+ "note": "Planned/under-construction terrestrial AI datacenters. Compiled from public reporting via LLM web search. Every field carries a confidence tag: known (primary/official), reported (press/analyst), inferred (our estimate, with reasoning). Refresh locally via scripts/research_planned.py. This is a lead list to verify, not authoritative.",
+ "confidence_legend": {
+  "known": "stated by the operator or an official/primary source",
+  "reported": "from press or analyst coverage",
+  "inferred": "our estimate from context; not directly sourced"
+ },
+ "records": [
+  {
+   "id": "stargate-abilene",
+   "operator": "OpenAI / Oracle / SoftBank / MGX (Stargate)",
+   "site": {
+    "value": "Abilene, Texas (Stargate One)",
+    "confidence": "known",
+    "source": "https://intuitionlabs.ai/articles/openai-stargate-datacenter-details",
+    "as_of": "2025-10"
+   },
+   "region": {
+    "value": "ERCOT, USA",
+    "confidence": "known",
+    "source": "https://www.blackridgeresearch.com/blog/upcoming-largest-data-center-projects-in-united-states-usa",
+    "as_of": "2026-08"
+   },
+   "it_mw": {
+    "value": null,
+    "confidence": "inferred",
+    "note": "not separately disclosed; facility ~1.2 GW"
+   },
+   "facility_mw": {
+    "value": 1200,
+    "confidence": "reported",
+    "source": "https://intuitionlabs.ai/articles/openai-stargate-datacenter-details",
+    "as_of": "2026"
+   },
+   "power_source": {
+    "value": "grid + on-site generation",
+    "confidence": "reported",
+    "source": "https://www.latitudemedia.com/news/what-the-michigan-stargate-site-says-about-todays-ai-market/",
+    "as_of": "2026-04"
+   },
+   "compute": {
+    "value": "450,000+ NVIDIA GB200 by mid-2026",
+    "confidence": "reported",
+    "source": "https://intuitionlabs.ai/articles/openai-stargate-datacenter-details",
+    "as_of": "2026"
+   },
+   "build_start": {
+    "value": "early 2025",
+    "confidence": "known",
+    "source": "https://valueaddvc.com/ai-buildout-tracker",
+    "as_of": "2026-06"
+   },
+   "energization": {
+    "value": "2 buildings live Sep 2025; 8 more through Q1 2027",
+    "confidence": "reported",
+    "source": "https://ai2027-tracker.com/predictions/datacenter-buildout/",
+    "as_of": "2026-08"
+   },
+   "investment": {
+    "value": "part of $500B Stargate program",
+    "confidence": "reported",
+    "source": "https://valueaddvc.com/ai-buildout-tracker",
+    "as_of": "2026-06"
+   },
+   "purpose": {
+    "value": "AI training/inference",
+    "confidence": "known",
+    "source": "https://intuitionlabs.ai/articles/openai-stargate-datacenter-details",
+    "as_of": "2025-10"
+   },
+   "status": {
+    "value": "under construction; 2GW expansion reportedly abandoned",
+    "confidence": "reported",
+    "source": "https://ai2027-tracker.com/predictions/datacenter-buildout/",
+    "as_of": "2026-08"
+   }
+  },
+  {
+   "id": "meta-hyperion-louisiana",
+   "operator": "Meta",
+   "site": {
+    "value": "Richland Parish, Louisiana (Hyperion)",
+    "confidence": "known",
+    "source": "https://www.irecruit.co/insights/hyperscale-data-center-news-tracking-mega-builds",
+    "as_of": "2026-06"
+   },
+   "region": {
+    "value": "MISO, USA",
+    "confidence": "known",
+    "source": "https://www.irecruit.co/insights/hyperscale-data-center-news-tracking-mega-builds",
+    "as_of": "2026-06"
+   },
+   "facility_mw": {
+    "value": 5000,
+    "confidence": "reported",
+    "source": "https://www.nextbigfuture.com/2025/11/first-five-ai-data-center-with-over-one-gigawatt-of-power-arriving-in-2026-2027.html",
+    "as_of": "2025-11"
+   },
+   "it_mw": {
+    "value": null,
+    "confidence": "inferred",
+    "note": "~5M H100e at full capacity; IT MW not disclosed"
+   },
+   "power_source": {
+    "value": "grid + on-site gas (regional pattern)",
+    "confidence": "inferred",
+    "note": "inferred from Louisiana buildout reporting; not confirmed for this site"
+   },
+   "compute": {
+    "value": "~5 million H100-equivalent at full capacity",
+    "confidence": "reported",
+    "source": "https://www.nextbigfuture.com/2025/11/first-five-ai-data-center-with-over-one-gigawatt-of-power-arriving-in-2026-2027.html",
+    "as_of": "2025-11"
+   },
+   "energization": {
+    "value": "full capacity late 2027–early 2028",
+    "confidence": "reported",
+    "source": "https://www.nextbigfuture.com/2025/11/first-five-ai-data-center-with-over-one-gigawatt-of-power-arriving-in-2026-2027.html",
+    "as_of": "2025-11"
+   },
+   "purpose": {
+    "value": "AI",
+    "confidence": "known",
+    "source": "https://www.irecruit.co/insights/hyperscale-data-center-news-tracking-mega-builds",
+    "as_of": "2026-06"
+   },
+   "status": {
+    "value": "under construction",
+    "confidence": "reported",
+    "source": "https://www.irecruit.co/insights/hyperscale-data-center-news-tracking-mega-builds",
+    "as_of": "2026-06"
+   }
+  },
+  {
+   "id": "meta-el-paso",
+   "operator": "Meta",
+   "site": {
+    "value": "El Paso, Texas",
+    "confidence": "known",
+    "source": "https://www.costar.com/article/983358925/",
+    "as_of": "2026-04"
+   },
+   "facility_mw": {
+    "value": 1000,
+    "confidence": "reported",
+    "source": "https://www.costar.com/article/983358925/",
+    "as_of": "2026-04"
+   },
+   "investment": {
+    "value": ">$10 billion",
+    "confidence": "reported",
+    "source": "https://www.costar.com/article/983358925/",
+    "as_of": "2026-04"
+   },
+   "purpose": {
+    "value": "AI",
+    "confidence": "known",
+    "source": "https://www.costar.com/article/983358925/",
+    "as_of": "2026-04"
+   },
+   "status": {
+    "value": "broke ground 2025; faced community opposition (water/environment)",
+    "confidence": "reported",
+    "source": "https://www.costar.com/article/983358925/",
+    "as_of": "2026-04"
+   }
+  },
+  {
+   "id": "meta-lebanon-indiana",
+   "operator": "Meta",
+   "site": {
+    "value": "Lebanon, Indiana",
+    "confidence": "known",
+    "source": "https://www.irecruit.co/insights/hyperscale-data-center-news-tracking-mega-builds",
+    "as_of": "2026-06"
+   },
+   "facility_mw": {
+    "value": 1000,
+    "confidence": "reported",
+    "source": "https://www.irecruit.co/insights/hyperscale-data-center-news-tracking-mega-builds",
+    "as_of": "2026-06"
+   },
+   "investment": {
+    "value": ">$10 billion, 1,500 acres, 13 buildings",
+    "confidence": "reported",
+    "source": "https://www.irecruit.co/insights/hyperscale-data-center-news-tracking-mega-builds",
+    "as_of": "2026-06"
+   },
+   "build_start": {
+    "value": "February 2026 (Turner Construction)",
+    "confidence": "known",
+    "source": "https://www.irecruit.co/insights/hyperscale-data-center-news-tracking-mega-builds",
+    "as_of": "2026-06"
+   },
+   "purpose": {
+    "value": "AI",
+    "confidence": "known",
+    "source": "https://www.irecruit.co/insights/hyperscale-data-center-news-tracking-mega-builds",
+    "as_of": "2026-06"
+   },
+   "status": {
+    "value": "under construction",
+    "confidence": "reported",
+    "source": "https://www.irecruit.co/insights/hyperscale-data-center-news-tracking-mega-builds",
+    "as_of": "2026-06"
+   }
+  },
+  {
+   "id": "microsoft-fairwater-wisconsin",
+   "operator": "Microsoft",
+   "site": {
+    "value": "Mount Pleasant, Wisconsin (Fairwater)",
+    "confidence": "known",
+    "source": "https://www.datacenterdynamics.com/en/news/microsoft-openai-consider-100bn-5gw-stargate-ai-data-center-report/",
+    "as_of": "2026-07"
+   },
+   "facility_mw": {
+    "value": 5000,
+    "confidence": "reported",
+    "source": "https://www.nextbigfuture.com/2025/11/first-five-ai-data-center-with-over-one-gigawatt-of-power-arriving-in-2026-2027.html",
+    "as_of": "2025-11"
+   },
+   "compute": {
+    "value": "~5 million H100-equivalent at full capacity",
+    "confidence": "reported",
+    "source": "https://www.nextbigfuture.com/2025/11/first-five-ai-data-center-with-over-one-gigawatt-of-power-arriving-in-2026-2027.html",
+    "as_of": "2025-11"
+   },
+   "energization": {
+    "value": "Phase 4 supercomputer ops from 2026; full late 2027–2028",
+    "confidence": "reported",
+    "source": "https://www.datacenterdynamics.com/en/news/microsoft-openai-consider-100bn-5gw-stargate-ai-data-center-report/",
+    "as_of": "2026-07"
+   },
+   "investment": {
+    "value": ">$100 billion projected total (most expensive known)",
+    "confidence": "reported",
+    "source": "https://www.nextbigfuture.com/2025/11/first-five-ai-data-center-with-over-one-gigawatt-of-power-arriving-in-2026-2027.html",
+    "as_of": "2025-11"
+   },
+   "purpose": {
+    "value": "AI (Azure/OpenAI)",
+    "confidence": "known",
+    "source": "https://www.datacenterdynamics.com/en/news/microsoft-openai-consider-100bn-5gw-stargate-ai-data-center-report/",
+    "as_of": "2026-07"
+   },
+   "status": {
+    "value": "under construction / expanding",
+    "confidence": "reported",
+    "source": "https://www.datacenterdynamics.com/en/news/microsoft-openai-consider-100bn-5gw-stargate-ai-data-center-report/",
+    "as_of": "2026-07"
+   }
+  },
+  {
+   "id": "anthropic-amazon-new-carlisle",
+   "operator": "Anthropic / Amazon",
+   "site": {
+    "value": "New Carlisle, Indiana",
+    "confidence": "known",
+    "source": "https://www.nextbigfuture.com/2025/11/first-five-ai-data-center-with-over-one-gigawatt-of-power-arriving-in-2026-2027.html",
+    "as_of": "2025-11"
+   },
+   "facility_mw": {
+    "value": 1000,
+    "confidence": "reported",
+    "source": "https://www.nextbigfuture.com/2025/11/first-five-ai-data-center-with-over-one-gigawatt-of-power-arriving-in-2026-2027.html",
+    "as_of": "2025-11"
+   },
+   "energization": {
+    "value": "~1 GW from January 2026",
+    "confidence": "reported",
+    "source": "https://www.nextbigfuture.com/2025/11/first-five-ai-data-center-with-over-one-gigawatt-of-power-arriving-in-2026-2027.html",
+    "as_of": "2025-11"
+   },
+   "purpose": {
+    "value": "AI (Anthropic training/inference)",
+    "confidence": "known",
+    "source": "https://www.nextbigfuture.com/2025/11/first-five-ai-data-center-with-over-one-gigawatt-of-power-arriving-in-2026-2027.html",
+    "as_of": "2025-11"
+   },
+   "status": {
+    "value": "energizing 2026",
+    "confidence": "reported",
+    "source": "https://www.nextbigfuture.com/2025/11/first-five-ai-data-center-with-over-one-gigawatt-of-power-arriving-in-2026-2027.html",
+    "as_of": "2025-11"
+   }
+  },
+  {
+   "id": "xai-colossus2",
+   "operator": "xAI",
+   "site": {
+    "value": "Colossus 2 (Memphis area), USA",
+    "confidence": "known",
+    "source": "https://www.nextbigfuture.com/2025/11/first-five-ai-data-center-with-over-one-gigawatt-of-power-arriving-in-2026-2027.html",
+    "as_of": "2025-11"
+   },
+   "facility_mw": {
+    "value": 1000,
+    "confidence": "reported",
+    "source": "https://www.nextbigfuture.com/2025/11/first-five-ai-data-center-with-over-one-gigawatt-of-power-arriving-in-2026-2027.html",
+    "as_of": "2025-11"
+   },
+   "energization": {
+    "value": "~1 GW from February 2026",
+    "confidence": "reported",
+    "source": "https://www.nextbigfuture.com/2025/11/first-five-ai-data-center-with-over-one-gigawatt-of-power-arriving-in-2026-2027.html",
+    "as_of": "2025-11"
+   },
+   "purpose": {
+    "value": "AI (Grok)",
+    "confidence": "known",
+    "source": "https://www.nextbigfuture.com/2025/11/first-five-ai-data-center-with-over-one-gigawatt-of-power-arriving-in-2026-2027.html",
+    "as_of": "2025-11"
+   },
+   "status": {
+    "value": "energizing 2026",
+    "confidence": "reported",
+    "source": "https://www.nextbigfuture.com/2025/11/first-five-ai-data-center-with-over-one-gigawatt-of-power-arriving-in-2026-2027.html",
+    "as_of": "2025-11"
+   }
+  },
+  {
+   "id": "galaxy-helios-afton-tx",
+   "operator": "Galaxy Digital / CoreWeave",
+   "site": {
+    "value": "Afton, Texas (Galaxy Helios / Project Matador)",
+    "confidence": "known",
+    "source": "https://www.blackridgeresearch.com/blog/upcoming-largest-data-center-projects-in-united-states-usa",
+    "as_of": "2026-08"
+   },
+   "region": {
+    "value": "ERCOT, USA",
+    "confidence": "known",
+    "source": "https://www.blackridgeresearch.com/blog/upcoming-largest-data-center-projects-in-united-states-usa",
+    "as_of": "2026-08"
+   },
+   "facility_mw": {
+    "value": 1600,
+    "confidence": "reported",
+    "source": "https://www.blackridgeresearch.com/blog/upcoming-largest-data-center-projects-in-united-states-usa",
+    "as_of": "2026-08"
+   },
+   "power_source": {
+    "value": "ERCOT grid; 1.6 GW approved, up to 3.5 GW potential",
+    "confidence": "reported",
+    "source": "https://www.blackridgeresearch.com/blog/upcoming-largest-data-center-projects-in-united-states-usa",
+    "as_of": "2026-08"
+   },
+   "compute": {
+    "value": "130–140 kW/rack ultra-high-density",
+    "confidence": "reported",
+    "source": "https://www.blackridgeresearch.com/blog/upcoming-largest-data-center-projects-in-united-states-usa",
+    "as_of": "2026-08"
+   },
+   "build_start": {
+    "value": "2025 (retrofit of former BTC mine)",
+    "confidence": "known",
+    "source": "https://www.blackridgeresearch.com/blog/upcoming-largest-data-center-projects-in-united-states-usa",
+    "as_of": "2026-08"
+   },
+   "energization": {
+    "value": "first 133 MW to CoreWeave Apr 2026; more through 2026–2027",
+    "confidence": "reported",
+    "source": "https://www.blackridgeresearch.com/blog/upcoming-largest-data-center-projects-in-united-states-usa",
+    "as_of": "2026-08"
+   },
+   "investment": {
+    "value": "$1.4B debt + $350M equity",
+    "confidence": "reported",
+    "source": "https://www.blackridgeresearch.com/blog/upcoming-largest-data-center-projects-in-united-states-usa",
+    "as_of": "2026-08"
+   },
+   "purpose": {
+    "value": "AI cloud / LLM training / HPC",
+    "confidence": "known",
+    "source": "https://www.blackridgeresearch.com/blog/upcoming-largest-data-center-projects-in-united-states-usa",
+    "as_of": "2026-08"
+   },
+   "status": {
+    "value": "phased delivery under way",
+    "confidence": "reported",
+    "source": "https://www.blackridgeresearch.com/blog/upcoming-largest-data-center-projects-in-united-states-usa",
+    "as_of": "2026-08"
+   }
+  },
+  {
+   "id": "stargate-argentina",
+   "operator": "OpenAI / Sur Energy (Stargate Argentina)",
+   "site": {
+    "value": "Patagonia, Argentina",
+    "confidence": "known",
+    "source": "https://intuitionlabs.ai/articles/openai-stargate-datacenter-details",
+    "as_of": "2025-10"
+   },
+   "facility_mw": {
+    "value": 500,
+    "confidence": "reported",
+    "source": "https://intuitionlabs.ai/articles/openai-stargate-datacenter-details",
+    "as_of": "2025-10"
+   },
+   "energization": {
+    "value": "first 100 MW phase targeted 2027",
+    "confidence": "reported",
+    "source": "https://intuitionlabs.ai/articles/openai-stargate-datacenter-details",
+    "as_of": "2025-10"
+   },
+   "investment": {
+    "value": "up to $25 billion",
+    "confidence": "reported",
+    "source": "https://intuitionlabs.ai/articles/openai-stargate-datacenter-details",
+    "as_of": "2025-10"
+   },
+   "purpose": {
+    "value": "AI (OpenAI for Countries)",
+    "confidence": "known",
+    "source": "https://intuitionlabs.ai/articles/openai-stargate-datacenter-details",
+    "as_of": "2025-10"
+   },
+   "status": {
+    "value": "Letter of Intent signed Oct 2025",
+    "confidence": "reported",
+    "source": "https://intuitionlabs.ai/articles/openai-stargate-datacenter-details",
+    "as_of": "2025-10"
+   }
+  },
+  {
+   "id": "amazon-louisiana",
+   "operator": "Amazon",
+   "site": {
+    "value": "Louisiana, USA",
+    "confidence": "known",
+    "source": "https://www.irecruit.co/insights/hyperscale-data-center-news-tracking-mega-builds",
+    "as_of": "2026-06"
+   },
+   "investment": {
+    "value": "$12 billion (announced Feb 2026)",
+    "confidence": "reported",
+    "source": "https://www.irecruit.co/insights/hyperscale-data-center-news-tracking-mega-builds",
+    "as_of": "2026-06"
+   },
+   "purpose": {
+    "value": "AI",
+    "confidence": "known",
+    "source": "https://www.irecruit.co/insights/hyperscale-data-center-news-tracking-mega-builds",
+    "as_of": "2026-06"
+   },
+   "status": {
+    "value": "announced Feb 2026",
+    "confidence": "reported",
+    "source": "https://www.irecruit.co/insights/hyperscale-data-center-news-tracking-mega-builds",
+    "as_of": "2026-06"
+   }
+  }
+ ]
+}
