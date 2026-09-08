@@ -3,8 +3,8 @@
  "meta": {
   "target": "Terrestrial AI Data Center Siting and Economics Model",
   "url": "https://lballaty.github.io/TerrestrialDatacenterSim/",
-  "app_version_at_authoring": "v1.0",
-  "catalog_version": "2.0.0",
+  "app_version_at_authoring": "v1.3",
+  "catalog_version": "3.2.0",
   "authored": "2026-09-05",
   "author": "Test plan generated for Libor Ballaty (Arion Networks s.r.o.)",
   "status": "Feature-complete; reference values pending audit",
@@ -15,7 +15,8 @@
    "Control DOM ids are stable and equal data-test-id. If an id is not found, re-enumerate the DOM and log DRIFT.",
    "The power mix is dynamic: rows mixOpt{i}/mixMW{i}/mixOrd{i}/mixDel{i} are created by the template engine; the manifest lists the template select and add button, and the reconciler treats per-row ids as dom_only INFO, not failures.",
    "The app auto-loads data/*.json on a served origin; on file:// it uses embedded presets. Tests state which mode they assume."
-  ]
+  ],
+  "shared_catalog": "shared-compute-catalog.js — synced byte-identical with OrbitalDatacenterSim (7 launchable stacks + 7 models); terrestrial adds 4 terrestrial-only stacks"
  },
  "runner_protocol": {
   "io_primitives": {
@@ -1027,6 +1028,31 @@
     "step": 0.5,
     "unit": "%",
     "gated_by": "finMode"
+   },
+   {
+    "tab": "compute",
+    "id": "tpsuRef",
+    "label": "Reference tok/s/user",
+    "default": 116,
+    "step": 1,
+    "unit": "tok/s/user"
+   },
+   {
+    "tab": "compute",
+    "id": "tpsu",
+    "label": "Target tok/s/user",
+    "default": 116,
+    "step": 1,
+    "unit": "tok/s/user",
+    "gated_by": "interMode"
+   },
+   {
+    "tab": "compute",
+    "id": "interAlpha",
+    "label": "Interactivity exponent",
+    "default": 0.9,
+    "step": 0.05,
+    "unit": ""
    }
   ],
   "text_file_inputs": [
@@ -1312,19 +1338,6 @@
    },
    {
     "tab": "visuals",
-    "id": "vizView",
-    "label": "Graphical view",
-    "options": [
-     "zoom",
-     "plan",
-     "build",
-     "scene"
-    ],
-    "default": "zoom",
-    "effect": "Switches the graphical model: location zoom / above-site plan / build-up."
-   },
-   {
-    "tab": "visuals",
     "id": "vizOverlay",
     "label": "Map overlay",
     "options": [
@@ -1355,40 +1368,35 @@
     "label": "Compute platform",
     "options": [
      "gb300",
-     "b300",
+     "rubin",
+     "mi455x",
+     "tpu7",
+     "groq3",
+     "cs4",
+     "trn3",
      "mi355x",
-     "mi400",
+     "b300srv",
      "gaudi3",
-     "cs3",
-     "groq",
-     "sn40",
-     "ascend",
-     "tpu",
-     "trn3"
+     "ascend"
     ],
     "default": "gb300",
-    "effect": "Sets kW/accelerators/HBM/cost/cooling/granularity/residual/export; fields stay editable."
+    "effect": "Selects the compute stack (shared with orbital tool for the 7 launchable rows + 4 terrestrial-only). Sets class-based throughput."
    },
    {
     "tab": "compute",
     "id": "model",
     "label": "Served model",
     "options": [
-     "llama4mav",
-     "llama4sco",
-     "ds v3",
-     "ds r1",
-     "qwen235",
-     "qwen32",
-     "mistral3",
-     "gptoss",
-     "kimi",
-     "gpt",
-     "claude",
-     "gemini"
+     "dsv4pro",
+     "dsv4flash",
+     "kimik26",
+     "glm52",
+     "gptoss120",
+     "llama70",
+     "frontier"
     ],
-    "default": "llama4mav",
-    "effect": "Sets throughput (matrix or derived) and market price; proprietary models are lease-only."
+    "default": "dsv4pro",
+    "effect": "Served model (shared catalog). Its size class picks the throughput cell."
    },
    {
     "tab": "compute",
@@ -1524,6 +1532,43 @@
      "on"
     ],
     "default": "off"
+   },
+   {
+    "tab": "compute",
+    "id": "interMode",
+    "label": "Interactivity mode",
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off",
+    "effect": "Off = cell reference tok/s/user; on = scale throughput for a target interactivity."
+   },
+   {
+    "tab": "visuals",
+    "id": "vizScale",
+    "label": "Visual scale",
+    "options": [
+     "rack",
+     "hall",
+     "site",
+     "zoom",
+     "scene"
+    ],
+    "default": "site",
+    "effect": "Which scale to draw: single rack, data hall, site/campus, location map, or archetype siting scene."
+   },
+   {
+    "tab": "visuals",
+    "id": "vizStyle",
+    "label": "Visual style",
+    "options": [
+     "concept",
+     "technical",
+     "both"
+    ],
+    "default": "technical",
+    "effect": "Concept picture vs dimensioned technical/engineering drawing."
    }
   ],
   "buttons_contextual": [
@@ -2131,7 +2176,7 @@
    "id": "S14",
    "name": "Graphical models",
    "parametric_over": "control_registry.render_surfaces",
-   "proves": "Each of the 3 views (zoom/plan/build) renders SVG nodes without error and redraws on its controls and on model inputs; pop-out mirrors the scenario (R26). Includes the archetype 'scene' view for float/sub/mtn.",
+   "proves": "Each of the 3 views (zoom/plan/build) renders SVG nodes without error and redraws on its controls and on model inputs; pop-out mirrors the scenario (R26). Includes the archetype 'scene' view for float/sub/mtn. Includes the dimensioned engineering sheet (the terrestrial equivalent of the orbital engineering sheet).",
    "type": "functional+validity"
   },
   {
@@ -2171,6 +2216,12 @@
    "id": "S20",
    "name": "Comparison, business case, financing",
    "proves": "Multi-site table matches single-scenario results (R44); business case margins consistent (R43); financing WACC replaces discount and 0-debt reproduces all-equity (R42); all three off by default preserve parity.",
+   "type": "functional+validity"
+  },
+  {
+   "id": "S21",
+   "name": "Shared compute catalog",
+   "proves": "Class-based throughput matches the orbital tool (R45); model and stack selection drive cost correctly (R46); interactivity scales as specified (R47).",
    "type": "functional+validity"
   }
  ],
@@ -2437,6 +2488,36 @@
    "id": "R44",
    "name": "Comparison diagonal",
    "check": "A site's row in the comparison table equals the single-scenario result when that site is selected.",
+   "severity": "medium"
+  },
+  {
+   "id": "R45",
+   "name": "Shared catalog class cells",
+   "check": "GB300 large-MoE = 2.8M, mid = 6M, small = 20M tok/s/MW, identical to the orbital tool. A smaller model class always yields higher tokens/s/MW on the same stack.",
+   "severity": "high"
+  },
+  {
+   "id": "R46",
+   "name": "Model selection drives cost",
+   "check": "Changing the served model changes $/1M tokens via its size class (e.g. gpt-oss small ≪ DeepSeek V4 Pro large); changing the stack changes it via the stack's per-class cell.",
+   "severity": "high"
+  },
+  {
+   "id": "R47",
+   "name": "Interactivity scaling",
+   "check": "With interactivity on, raising target tok/s/user above the reference lowers throughput by (ref/target)^α, clamped 0.2–3×.",
+   "severity": "medium"
+  },
+  {
+   "id": "R48",
+   "name": "Engineering sheet renders dimensioned facility",
+   "check": "The 'sheet' view draws the building, MEP/electrical, cooling plant, power source, substation and water/heat blocks sized from siteA/grossA, a CAPEX breakdown with cost shares summing to the total, a facts table (IT/facility MW, areas, racks, energy, time-to-power) and a power→heat flow strip; no NaN; scales hall↔campus. Land archetype's 'scene' view falls through to the sheet.",
+   "severity": "medium"
+  },
+  {
+   "id": "R49",
+   "name": "Two-axis visuals render",
+   "check": "Every Scale×Style combination (rack/hall/site × concept/technical, plus zoom and scene) draws SVG nodes without error; rack shows accelerator trays/callouts, hall shows rack rows, site technical = engineering sheet, site concept = campus massing. Mirrors the orbital Single/Cluster/System × Concept/Technical structure.",
    "severity": "medium"
   }
  ],
