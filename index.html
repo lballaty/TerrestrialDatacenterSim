@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Terrestrial AI Data Center Siting and Economics Model (v1.0)</title>
+<title>Terrestrial AI Data Center Siting and Economics Model (v1.3)</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#151b23;--panel2:#1b2330;--panel3:#10161e;
@@ -249,7 +249,11 @@ code{background:#0d1117;padding:2px 4px;border-radius:4px}
           <label>HBM per accelerator, GB <span class="badge anchor">anchor</span></label><input id="hbm" type="number" step="8" value="288">
           <label>Compute cost / unit, $M <span class="badge baseline" id="lab_rcost">baseline</span></label><input id="rcost" type="number" step="0.1" value="4">
           <label>Software maturity factor (0.6–1.0) <span class="badge baseline">baseline</span></label><input id="maturity" type="number" step="0.05" min="0.6" max="1" value="1.0">
-          <label>Throughput basis</label><select id="tpsMode"><option value="auto" selected>Matrix / derived (platform × model)</option><option value="manual">Manual tokens/s/MW</option></select>
+          <label>Throughput basis</label><select id="tpsMode"><option value="auto" selected>Class cell (platform × model class)</option><option value="manual">Manual tokens/s/MW</option></select>
+          <label>Interactivity mode</label><select id="interMode"><option value="off" selected>Off — throughput at the cell's reference tok/s/user</option><option value="on">On — scale for target tok/s/user</option></select>
+          <label>Reference tok/s/user (cell basis) <span class="badge anchor">anchor</span></label><input id="tpsuRef" type="number" step="1" value="116">
+          <label>Target tok/s/user <span class="badge scenario">scenario</span></label><input id="tpsu" type="number" step="1" value="116">
+          <label>Interactivity exponent α <span class="badge baseline">baseline</span></label><input id="interAlpha" type="number" step="0.05" value="0.9">
           <label>Inference throughput, tokens/s/MW <span class="badge derived" id="lab_tpsmw">derived</span></label><input id="tpsmw" type="number" step="100000" value="2800000">
           <label>IT overhead beyond TDP, % <span class="badge baseline">baseline</span></label><input id="itoh" type="number" step="1" value="10">
           <label>Installed spare capacity, % <span class="badge scenario">scenario</span></label><input id="spare" type="number" step="1" value="5">
@@ -379,7 +383,8 @@ code{background:#0d1117;padding:2px 4px;border-radius:4px}
       <div class="pane" id="visuals">
         <h2>Graphical models</h2>
         <div class="controls">
-          <label>View</label><select id="vizView"><option value="zoom">Location zoom</option><option value="plan">Above-site plan</option><option value="build">Datacenter build-up</option><option value="scene">Siting scene (archetype)</option></select>
+          <label>Scale</label><select id="vizScale"><option value="rack">Single rack / row</option><option value="hall">Data hall</option><option value="site" selected>Site / campus</option><option value="zoom">Location (map)</option><option value="scene">Siting scene (archetype)</option></select>
+          <label>Style</label><select id="vizStyle"><option value="concept">Concept (picture)</option><option value="technical" selected>Technical (engineering)</option><option value="both">Both</option></select>
           <label>Location zoom level</label><input id="vizZoom" type="range" min="0" max="2" step="1" value="0"><div class="note" id="vizZoomLbl">Global</div>
           <label>Map overlay</label><select id="vizOverlay"><option value="none">none</option><option value="carbon">grid carbon</option><option value="water">water stress</option><option value="hazard">seismic / flood</option></select>
           <label>Build-up stage</label><input id="vizStage" type="range" min="1" max="5" step="1" value="5"><div class="note" id="vizStageLbl">All stages</div>
@@ -483,6 +488,8 @@ code{background:#0d1117;padding:2px 4px;border-radius:4px}
 
 <footer>
   <strong>Model integrity notes</strong><br>
+  <strong>v1.3 (WP9c):</strong> visuals restructured to the orbital tool's two-axis model — Scale (single rack · data hall · site/campus, plus Location map and Siting scene) × Style (Concept picture · Technical engineering). Rack and hall gain concept and dimensioned-technical renderings; site technical is the engineering sheet, site concept a campus massing view.<br>
+  <strong>v1.2 (WP9b):</strong> datacenter engineering sheet — dimensioned facility view (building, MEP, cooling plant, on-site power, substation, water/heat, rack rows) sized from the model, CAPEX breakdown by cost share, physical facts table, power→heat flow strip; the terrestrial equivalent of the orbital engineering sheet.<br>
   <strong>v1.0 (WP7d):</strong> multi-site comparison (up to 4 presets side by side), business case (open-weight market price or lessor $/GPU-hour → margin and payback), and financing (PropCo/ComputeCo debt → blended WACC replacing the discount rate). All three off by default; feature set complete through the plan. Reference values still to be audited.<br>
   <strong>v0.11 (WP7c):</strong> risk register — nine risks (community, appeal, policy, curtailment, tariff, geopolitical, labour, weather, allocation) each with probability · delay · cost-multiplier; expected-value schedule and cost adjustments shown unrisked-vs-risked with per-risk contribution; community-benefit payment lowers opposition probability. Off by default.<br>
   <strong>v0.10 (WP7b):</strong> demand module — global inference-demand trajectory × latency-addressable share × capture ramp → utilization derived per year (replaces the fixed Utilization input when on); served-vs-capacity and stranded-MW table. Off by default.<br>
@@ -510,37 +517,95 @@ let lastData=null;
 
 // ---------- WP6 compute platform / model / throughput catalogs (mirrored in data/*.json) ----------
 // residual curves: % of unit cost retained at 12/24/36/48/60 months, three bands
-const PLATFORMS=[
- {id:'gb300',name:'NVIDIA GB300 NVL72',gran:'rack',acc:72,kw:135,peak:155,hbm:288,cost:4.0,cool:'dlc',lead:14,avail:2000,mat:1.0,exp:'unrestricted',res:{cons:[75,55,38,26,16],mid:[82,66,50,37,26],opt:[90,78,64,50,38]}},
- {id:'b300',name:'NVIDIA B300 HGX server',gran:'server',acc:8,kw:14,peak:16,hbm:288,cost:0.42,cool:'dlc',lead:12,avail:2000,mat:1.0,exp:'unrestricted',res:{cons:[74,54,37,25,15],mid:[81,65,49,36,25],opt:[89,77,63,49,37]}},
- {id:'mi355x',name:'AMD MI355X server',gran:'server',acc:8,kw:12,peak:14,hbm:288,cost:0.30,cool:'dlc',lead:10,avail:2000,mat:0.85,exp:'unrestricted',res:{cons:[65,45,30,19,11],mid:[74,55,39,27,18],opt:[83,66,50,37,26]}},
- {id:'mi400',name:'AMD MI400 "Helios" rack',gran:'rack',acc:72,kw:140,peak:160,hbm:432,cost:3.6,cool:'dlc',lead:18,avail:2026,mat:0.8,exp:'unrestricted',res:{cons:[66,46,31,20,12],mid:[75,56,40,28,19],opt:[84,67,51,38,27]}},
- {id:'gaudi3',name:'Intel Gaudi 3 server',gran:'server',acc:8,kw:8,peak:9,hbm:128,cost:0.16,cool:'air',lead:8,avail:2000,mat:0.75,exp:'unrestricted',res:{cons:[55,35,22,13,7],mid:[64,44,29,19,11],opt:[73,54,38,26,17]}},
- {id:'cs3',name:'Cerebras CS-3',gran:'rack',acc:1,kw:23,peak:25,hbm:44,cost:2.5,cool:'dlc',lead:16,avail:2000,mat:0.7,exp:'unrestricted',res:{cons:[60,40,26,16,9],mid:[70,50,34,23,14],opt:[80,62,46,33,23]}},
- {id:'groq',name:'Groq LPU rack',gran:'rack',acc:576,kw:60,peak:70,hbm:0,cost:2.0,cool:'dlc',lead:14,avail:2000,mat:0.7,exp:'unrestricted',res:{cons:[55,35,22,13,7],mid:[65,45,30,20,12],opt:[75,56,40,28,19]}},
- {id:'sn40',name:'SambaNova SN40L rack',gran:'rack',acc:16,kw:40,peak:48,hbm:0,cost:1.8,cool:'dlc',lead:14,avail:2000,mat:0.7,exp:'unrestricted',res:{cons:[55,35,22,13,7],mid:[65,45,30,20,12],opt:[75,56,40,28,19]}},
- {id:'ascend',name:'Huawei Ascend 910C / CloudMatrix',gran:'rack',acc:384,kw:145,peak:170,hbm:128,cost:3.2,cool:'dlc',lead:12,avail:2000,mat:0.75,exp:'region-restricted',res:{cons:[60,40,26,16,9],mid:[70,50,34,23,14],opt:[80,62,46,33,23]}},
- {id:'tpu',name:'Google TPU Ironwood (cloud-only)',gran:'cloud',acc:256,kw:100,peak:120,hbm:192,cost:0,cool:'dlc',lead:0,avail:2000,mat:0.9,exp:'cloud-only',res:{cons:[0,0,0,0,0],mid:[0,0,0,0,0],opt:[0,0,0,0,0]}},
- {id:'trn3',name:'AWS Trainium 3 (cloud-only)',gran:'cloud',acc:16,kw:20,peak:24,hbm:96,cost:0,cool:'dlc',lead:0,avail:2000,mat:0.85,exp:'cloud-only',res:{cons:[0,0,0,0,0],mid:[0,0,0,0,0],opt:[0,0,0,0,0]}},
-];
-// models: total params (B), active params (B, =total for dense), precision bytes/param, kv bytes/token, market $/1M tokens, licence
-const MODELS=[
- {id:'llama4mav',name:'Llama 4 Maverick',tot:400,act:17,pb:1,kv:0.5,price:0.60,lic:'open'},
- {id:'llama4sco',name:'Llama 4 Scout',tot:109,act:17,pb:1,kv:0.5,price:0.35,lic:'open'},
- {id:'ds v3',name:'DeepSeek V3',tot:671,act:37,pb:1,kv:0.7,price:0.48,lic:'open'},
- {id:'ds r1',name:'DeepSeek R1',tot:671,act:37,pb:1,kv:0.7,price:0.55,lic:'open'},
- {id:'qwen235',name:'Qwen3 235B-A22B',tot:235,act:22,pb:1,kv:0.6,price:0.40,lic:'open'},
- {id:'qwen32',name:'Qwen3 32B (dense)',tot:32,act:32,pb:1,kv:0.5,price:0.20,lic:'open'},
- {id:'mistral3',name:'Mistral Large 3',tot:123,act:123,pb:1,kv:0.5,price:0.55,lic:'open'},
- {id:'gptoss',name:'gpt-oss-120b',tot:120,act:5.1,pb:1,kv:0.5,price:0.25,lic:'open'},
- {id:'kimi',name:'Kimi K2',tot:1000,act:32,pb:1,kv:0.7,price:0.60,lic:'open'},
- {id:'gpt',name:'GPT-class (proprietary)',tot:null,act:null,pb:1,kv:0.7,price:5.0,lic:'prop'},
- {id:'claude',name:'Claude-class (proprietary)',tot:null,act:null,pb:1,kv:0.7,price:6.0,lic:'prop'},
- {id:'gemini',name:'Gemini-class (proprietary)',tot:null,act:null,pb:1,kv:0.7,price:5.0,lic:'prop'},
-];
-// referential throughput cells: tokens/s/MW for specific platform×model (else derived)
-const THROUGHPUT={'gb300|llama4mav':2800000,'gb300|ds v3':2600000};
+// ==========================================================================
+// SHARED COMPUTE CATALOG — identical in OrbitalDatacenterSim and TerrestrialDatacenterSim
+// Source of truth: keep these three blocks (STACKS, MODELS, throughput helpers)
+// byte-identical across both tools except for the terrestrial-only STACKS rows,
+// which are flagged terrestrialOnly:true and never launched to orbit.
+// Catalog version: 3.0.0 (2026-09-05)
+// ==========================================================================
+const STACKS={
+  gb300:{name:'NVIDIA GB300 NVL72',rkw:135,rpk:155,rm:1580,gpu:72,rcost:4,nodes:18,memtype:'hbm',stackrad:1.25,procurable:'yes',
+    tps:{small:20e6,mid:6e6,large:2.8e6},src:{small:'estimate',mid:'estimate',large:'measured'},
+    note:'Rack TDP and mass from Lenovo GB300 NVL72. Large-MoE cell: 2.8M tok/s/MW at 116 tok/s/user (SemiAnalysis InferenceX, cited by NVIDIA, 2026). Small/mid cells scale by active-parameter ratio and are estimates.'},
+  rubin:{name:'NVIDIA Vera Rubin NVL72',rkw:190,rpk:220,rm:1700,gpu:72,rcost:5.5,nodes:18,memtype:'hbm',stackrad:1.25,procurable:'limited',
+    tps:{small:40e6,mid:12e6,large:5.5e6},src:{small:'estimate',mid:'estimate',large:'estimate'},
+    note:'SemiAnalysis (July 2026) puts Rubin near 2× GB300 throughput at ≤100 tok/s/user. Rack power, mass and price are estimates; allocation is constrained through 2027.'},
+  mi455x:{name:'AMD Helios MI455X',rkw:200,rpk:230,rm:1700,gpu:72,rcost:5.25,nodes:18,memtype:'hbm',stackrad:1.25,procurable:'yes',
+    tps:{small:40e6,mid:12e6,large:5.5e6},src:{small:'estimate',mid:'estimate',large:'estimate'},
+    note:'72 MI455X, 31 TB HBM4, 2.9 EF FP4 (AMD, July 2026). Rack price ~$5.25M reported by Tech Insider. AMD claims +30% tokens/$ vs Rubin on Kimi K2 Thinking (vendor benchmark). Rack power is an estimate; InferenceX results pending.'},
+  tpu7:{name:'Google Ironwood TPU v7',rkw:75,rpk:90,rm:1000,gpu:64,rcost:2.5,nodes:16,memtype:'hbm',stackrad:1.1,procurable:'no',
+    tps:{small:22e6,mid:6.5e6,large:3e6},src:{small:'estimate',mid:'estimate',large:'estimate'},
+    note:'~1 kW/chip inferred from 9,216-chip pod at ~10 MW (HPCwire). Not merchant hardware: a third-party operator cannot buy it. Google claims 44% lower TCO than GB200 in pod configuration. Radiation multiplier lower only because Google has published proton data for the prior generation.'},
+  groq3:{name:'NVIDIA Groq 3 LPX',rkw:120,rpk:140,rm:1400,gpu:256,rcost:3,nodes:32,memtype:'sram',stackrad:1.6,procurable:'limited',
+    tps:{small:30e6,mid:null,large:null},src:{small:'estimate',mid:'n/a',large:'n/a'},
+    note:'256 LPUs in 32 trays, 128 GB total on-die SRAM, 40 PB/s (NVIDIA developer blog). Headline 3,400 tok/s is single-stream on a 31B model; concurrency at 100K context caps near batch 12. 128 GB cannot hold trillion-parameter weights, so mid/large cells are not servable without a Rubin prefill/attention partner. Power, mass and price are estimates.'},
+  cs4:{name:'Cerebras CS-4',rkw:75,rpk:90,rm:1200,gpu:3,rcost:7,nodes:3,memtype:'wafer',stackrad:2,procurable:'limited',
+    tps:{small:25e6,mid:5e6,large:1.5e6},src:{small:'estimate',mid:'estimate',large:'estimate'},
+    note:'Three WSE-3 Turbo wafers (44 GB SRAM each) on the Nexus platform, announced August 2026. Large models rely on external weight memory. Full-wafer die area drives the highest SEE cross-section of any stack. All figures are estimates.'},
+  trn3:{name:'AWS Trainium3 rack',rkw:120,rpk:140,rm:1400,gpu:64,rcost:3,nodes:16,memtype:'hbm',stackrad:1.25,procurable:'no',
+    tps:{small:18e6,mid:5e6,large:2.2e6},src:{small:'estimate',mid:'estimate',large:'estimate'},
+    note:'Captive to AWS; included for comparison only. All figures are estimates.'}
+,
+  // --- terrestrial-only stacks (land / sea / undersea; not launchable) ---
+  mi355x:{name:'AMD MI355X server (8-GPU)',rkw:12,rpk:14,rm:0,gpu:8,rcost:0.30,nodes:1,memtype:'hbm',procurable:'yes',terrestrialOnly:true,
+    tps:{small:36e6,mid:11e6,large:5e6},src:{small:'estimate',mid:'estimate',large:'estimate'},
+    note:'Merchant 8-GPU server, air/DLC. Server-granularity swap. Terrestrial-only. Figures estimates.'},
+  b300srv:{name:'NVIDIA B300 HGX server (8-GPU)',rkw:14,rpk:16,rm:0,gpu:8,rcost:0.42,nodes:1,memtype:'hbm',procurable:'yes',terrestrialOnly:true,
+    tps:{small:20e6,mid:6e6,large:2.8e6},src:{small:'estimate',mid:'estimate',large:'measured'},
+    note:'Merchant 8-GPU Blackwell Ultra server; per-GPU throughput mirrors GB300. Terrestrial-only server granularity.'},
+  gaudi3:{name:'Intel Gaudi 3 server',rkw:8,rpk:9,rm:0,gpu:8,rcost:0.16,nodes:1,memtype:'hbm',procurable:'yes',terrestrialOnly:true,
+    tps:{small:12e6,mid:3.5e6,large:1.4e6},src:{small:'estimate',mid:'estimate',large:'estimate'},
+    note:'Air-coolable, lowest $/accelerator. Terrestrial-only. Figures estimates.'},
+  ascend:{name:'Huawei Ascend 910C / CloudMatrix',rkw:145,rpk:170,rm:0,gpu:384,rcost:3.2,nodes:48,memtype:'hbm',procurable:'region-restricted',terrestrialOnly:true,
+    tps:{small:16e6,mid:5e6,large:2.4e6},src:{small:'estimate',mid:'estimate',large:'estimate'},
+    note:'Region-restricted (China). Immersion-friendly for sea/undersea siting. Figures estimates.'}
+};
+
+const MODELS={
+  dsv4pro:{name:'DeepSeek V4 Pro',mclass:'large',mparams:1600,mactive:49,fp:{i:.435,o:.87},nh:{i:2.1,o:4.4},mlic:0,latclass:'agentic',
+    note:'First-party API $0.435/$0.87 per 1M (BenchLM, July 2026); neutral hosts charge $2.10/$4.40 (Together). Open weights, no licence cost. DeepSeek has signalled a price increase without a date.'},
+  dsv4flash:{name:'DeepSeek V4 Flash',mclass:'mid',mparams:300,mactive:20,fp:{i:.14,o:.28},nh:null,mlic:0,latclass:'agentic',
+    note:'First-party $0.14/$0.28 per 1M. Parameter counts are placeholders; size class is the load-bearing input.'},
+  kimik26:{name:'Kimi K2.6',mclass:'large',mparams:1000,mactive:32,fp:null,nh:{i:1.2,o:4.5},mlic:0,latclass:'agentic',
+    note:'Together AI $1.20/$4.50 per 1M. Open weights under a custom licence with commercial conditions: verify before assuming zero licence cost.'},
+  glm52:{name:'GLM-5.2',mclass:'large',mparams:744,mactive:40,fp:{i:1.4,o:4.4},nh:{i:1.4,o:4.4},mlic:0,latclass:'agentic',
+    note:'$1.40/$4.40 per 1M (z.ai / Together). MIT-licensed weights.'},
+  gptoss120:{name:'gpt-oss 120B',mclass:'small',mparams:120,mactive:5,fp:null,nh:{i:.15,o:.6},mlic:0,latclass:'interactive',
+    note:'Together AI $0.15/$0.60 per 1M. Apache-2.0 weights. High tokens/MW, so the relay link becomes the binding constraint.'},
+  llama70:{name:'Llama 3.3 70B',mclass:'small',mparams:70,mactive:70,fp:null,nh:{i:.88,o:.88},mlic:0,latclass:'interactive',
+    note:'Together AI $0.88 flat per 1M. Dense model: active = total parameters.'},
+  frontier:{name:'Frontier proprietary (licensed)',mclass:'large',mparams:2000,mactive:100,fp:{i:2,o:12},nh:{i:2,o:12},mlic:4,latclass:'agentic',
+    note:'Scenario: a third-party operator serving a frontier model under a per-token licence. Price tier and $4/1M licence are illustrative; no vendor publishes such terms.'}
+}
+
+// Shared throughput selection: stack × model-class → tokens/s/MW, with an optional
+// interactivity factor (tpsuRef/tpsu)^interAlpha, identical to the orbital tool.
+function stackTps(stackId, mclass){ const st=STACKS[stackId]; if(!st) return null; const v=st.tps[mclass]; return (v===null||v===undefined)?null:v; }
+function interactivityFactor(on, tpsuRef, tpsu, alpha){ return on? Math.max(.2, Math.min(3, Math.pow(Math.max(1,tpsuRef)/Math.max(1,tpsu), alpha))) : 1; }
+function effectiveTpsMW(stackId, mclass, opts){ const base=stackTps(stackId,mclass); if(base===null) return null; const o=opts||{}; return base*interactivityFactor(!!o.interOn, o.tpsuRef||116, o.tpsu||116, (o.alpha==null?0.9:o.alpha)); }
+// blended market price $/1M tokens from a model's fp/nh input/output tiers (3:1 output-weighted, first-party if present else neutral host)
+function modelBlendedPrice(m){ if(!m) return null; const t=m.fp||m.nh; if(!t) return null; return (t.i+3*t.o)/4; }
+
+
+// Residual-value curves (% of unit cost at 12/24/36/48/60 mo) by stack — terrestrial-only concern (refresh economics)
+const RESIDUALS={
+ gb300:{cons:[75,55,38,26,16],mid:[82,66,50,37,26],opt:[90,78,64,50,38]},
+ rubin:{cons:[74,54,37,25,15],mid:[81,65,49,36,25],opt:[89,77,63,49,37]},
+ mi455x:{cons:[66,46,31,20,12],mid:[75,56,40,28,19],opt:[84,67,51,38,27]},
+ mi355x:{cons:[65,45,30,19,11],mid:[74,55,39,27,18],opt:[83,66,50,37,26]},
+ b300srv:{cons:[74,54,37,25,15],mid:[81,65,49,36,25],opt:[89,77,63,49,37]},
+ gaudi3:{cons:[55,35,22,13,7],mid:[64,44,29,19,11],opt:[73,54,38,26,17]},
+ ascend:{cons:[60,40,26,16,9],mid:[70,50,34,23,14],opt:[80,62,46,33,23]},
+ tpu7:{cons:[0,0,0,0,0],mid:[0,0,0,0,0],opt:[0,0,0,0,0]},
+ trn3:{cons:[0,0,0,0,0],mid:[0,0,0,0,0],opt:[0,0,0,0,0]},
+ groq3:{cons:[55,35,22,13,7],mid:[65,45,30,20,12],opt:[75,56,40,28,19]},
+ cs4:{cons:[60,40,26,16,9],mid:[70,50,34,23,14],opt:[80,62,46,33,23]},
+};
+const RES_DEFAULT={cons:[65,45,30,19,11],mid:[74,55,39,27,18],opt:[83,66,50,37,26]};
 const LEADTIMES=[
+ {id:'transformer',name:'HV transformer (≥100 MVA)',lead:30},
+ {id:'switchgear',name:'MV switchgear',lead:14},
  {id:'transformer',name:'HV transformer (≥100 MVA)',lead:30},
  {id:'switchgear',name:'MV switchgear',lead:14},
  {id:'chiller',name:'Chillers / CDUs',lead:10},
@@ -663,7 +728,7 @@ async function loadCurated(){
   if(RESOURCES&&RESOURCES.records){Object.keys(SITES).forEach(applyResources);msg.push('resources');}
   // platforms
   const plat=await fetchJSON('./data/platforms.json');
-  if(plat&&plat.records){const byId={};plat.records.forEach(r=>byId[r.id]=r);let nc=0;PLATFORMS.forEach(o=>{const r=byId[o.id];if(!r)return;const num=(x,d)=>(x&&x.value!=null)?x.value:d;if(r.tdp_kw)o.kw=num(r.tdp_kw,o.kw);if(r.unit_cost_usd_m)o.cost=num(r.unit_cost_usd_m,o.cost);if(r.lead_months)o.lead=num(r.lead_months,o.lead);if(r.earliest_availability_year)o.avail=num(r.earliest_availability_year,o.avail);if(r.software_maturity_factor)o.mat=num(r.software_maturity_factor,o.mat);if(typeof r.accelerators_per_unit==='number')o.acc=r.accelerators_per_unit;if(typeof r.hbm_gb_per_accelerator==='number')o.hbm=r.hbm_gb_per_accelerator;if(r.export_status)o.exp=r.export_status;if(r.residual_pct_12_24_36_48_60)o.res=r.residual_pct_12_24_36_48_60;nc++;});if(nc)msg.push(nc+' platforms');}
+  if(plat&&plat.records){msg.push(plat.records.length+' platform records (catalog is shared/embedded; data file is reference only)');}
   // models
   const mdl=await fetchJSON('./data/models.json');
   if(mdl&&mdl.records){const byId={};mdl.records.forEach(r=>byId[r.id]=r);let nc=0;MODELS.forEach(o=>{const r=byId[o.id];if(!r)return;if(typeof r.total_params_b==='number'||r.total_params_b===null)o.tot=r.total_params_b;if(typeof r.active_params_b==='number'||r.active_params_b===null)o.act=r.active_params_b;if(r.market_price_usd_per_1m_tokens&&r.market_price_usd_per_1m_tokens.value!=null)o.price=r.market_price_usd_per_1m_tokens.value;nc++;});if(nc)msg.push(nc+' models');}
@@ -899,8 +964,9 @@ function coolK(){return {air:'0.35',rdhx:'0.22',dlc:'0.12',imm:'0.08'}[sv('cool'
 function mixColor(){return MIX.some(m=>['recip','aero','ccgt','ccgtccs','h2ready','sofc'].includes(m.opt))?'#d29922':MIX.some(m=>['smr','micro','nuccontract'].includes(m.opt))?'#a371f7':MIX.some(m=>['pv','wind','geo','hydro'].includes(m.opt))?'#3fb950':'#3a5570';}
 function powerLabel(r){const t=$('mixTemplate').value;const names={grid:'grid + backup',bridge:'gas bridge → grid',solarhyb:'solar + BESS + peaker',windflex:'wind + BESS + flexible grid',geo:'geothermal/hydro + grid',nuc:'nuclear/SMR + BESS',ccs:'CCGT+CCS + grid',custom:'custom mix'};return names[t]||'mix';}
 function drawScene(r){
-  const svg=vizClear();const W=760,H=460;svg.setAttribute('viewBox','0 0 '+W+' '+H);
   const a=archKind();
+  if(a==='land'){drawSheet(r);return;}
+  const svg=vizClear();const W=760,H=460;svg.setAttribute('viewBox','0 0 '+W+' '+H);
   svg.appendChild(el('rect',{x:0,y:0,width:W,height:H,fill:'#0a1119'}));
   if(a==='float'){
     svg.appendChild(el('rect',{x:0,y:300,width:W,height:160,fill:'#0e2233'})); // sea
@@ -932,54 +998,185 @@ function drawScene(r){
   set('vizTitle','Siting scene — '+ARCH[a].label);
   set('vizCaption',a==='mtn'?('head '+fmt(n('phHead'),0)+' m · usable '+fmt(n('phVol'),0)+'k m³ · η '+fmt(n('phEff'),2)+' → '+fmt(phStoredMWh2(),0)+' MWh stored'):(ARCH[a].note));
 }
-function drawViz(r){if(!r)return;const v=sv('vizView');if(v==='scene')drawScene(r);else if(v==='zoom')drawZoom(r);else if(v==='plan')drawPlan(r);else drawBuild(r);}
+
+function drawSheet(r){
+  const svg=vizClear();const W=1000,H=640;svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  svg.appendChild(el('rect',{x:0,y:0,width:W,height:H,fill:'#0b1219'}));
+  // --- derived physical layout from the model ---
+  const siteM=Math.sqrt(r.siteA);           // site side, m
+  const bldgM=Math.sqrt(r.grossA);           // building side, m
+  const whiteA=r.units*n('rackm2');
+  // scale: fit site square into a 520px box on the left
+  const box=520, ox=40, oy=70, s2p=box/Math.max(siteM,1);
+  const P=(m)=>m*s2p;
+  // site boundary
+  svg.appendChild(el('rect',{x:ox,y:oy,width:P(siteM),height:P(siteM),fill:'#0d1a12',stroke:'#2f4030','stroke-width':1.5,rx:2}));
+  svg.appendChild(el('text',{x:ox,y:oy-8,fill:'#7ee2a0','font-size':12},'Site '+fmt(r.siteA/1e4,2)+' ha ('+fmt(siteM,0)+' × '+fmt(siteM,0)+' m)'));
+  // building block (data hall), placed upper-left inside site
+  const bx=ox+P(siteM*0.06), by=oy+P(siteM*0.06), bw=P(bldgM), bh=P(bldgM*0.6);
+  const block=(x,y,w,h,fill,stroke,label,sub)=>{const g=el('g',{});g.appendChild(el('rect',{x,y,width:w,height:h,fill,stroke,'stroke-width':1.3,rx:3}));
+    if(w>46){g.appendChild(el('text',{x:x+6,y:y+15,fill:'#e6edf3','font-size':11,'font-weight':600},label));if(sub&&h>28)g.appendChild(el('text',{x:x+6,y:y+29,fill:'#9da7b3','font-size':9.5},sub));}svg.appendChild(g);return g;};
+  block(bx,by,bw,bh,'#152232','#3a5570','Data hall',fmt(whiteA,0)+' m² white · '+r.units+' racks');
+  // rows of racks inside the hall (visual), count scaled
+  const rows=Math.min(8,Math.ceil(Math.sqrt(r.units/6))), perRow=bw>60?rows:0;
+  for(let i=0;i<perRow;i++){const ry=by+10+i*((bh-16)/Math.max(1,perRow));svg.appendChild(el('rect',{x:bx+6,y:ry,width:bw-12,height:Math.max(2,(bh-16)/Math.max(1,perRow)-3),fill:'#8a6d1f','fill-opacity':0.25,stroke:'#8a6d1f','stroke-width':0.5}));}
+  // MEP / electrical yard (right of hall)
+  const ey=by, ex=bx+bw+P(siteM*0.03), ew=P(bldgM*0.45), eh=bh;
+  block(ex,ey,ew,eh,'#241d13','#8a6d1f','Electrical / MEP','Tier '+sv('tier')+' · '+fmt(r.facMW,1)+' MW');
+  // cooling plant (below hall)
+  const cyy=by+bh+P(siteM*0.03), cw=bw, ch=P(bldgM*0.28);
+  block(bx,cyy,cw,ch,'#132024','#2f6d7d','Cooling — '+coolLabel(),'PUE '+fmt(r.pue,2)+' · '+(parseFloat(sv('evap'))>0?'evaporative':'dry cooler'));
+  // power source block (bottom band): substation + on-site gen + BESS from the mix
+  const py=cyy, pw=ew, ph=ch, px=ex;
+  const genRows=MIX.filter(m=>['recip','aero','ccgt','ccgtccs','smr','micro','geo','pv','wind','hydro','nuccontract','bess','phydro'].includes(m.opt));
+  block(px,py,pw,ph,'#1c2413',genRows.length?'#3fb950':'#30363d',genRows.length?'On-site power':'Grid intake',powerLabel(r));
+  // substation always
+  const subY=cyy+ch+P(siteM*0.03);
+  block(bx,subY,P(bldgM*0.5),P(bldgM*0.18),'#101a24','#3a4a5a','Substation',fmt(r.facMW,1)+' MW · '+fmt(n('queue'),0)+' mo queue');
+  block(bx+P(bldgM*0.55),subY,P(bldgM*0.5),P(bldgM*0.18),'#0f1a1f','#2f6d7d','Water / heat',parseFloat(sv('evap'))>0?fmt(r.waterTotal/Math.max(1,15),0)+' m³/yr':'closed loop');
+  // scale bar (100 m or site/4)
+  const barM=Math.min(100,siteM/3);
+  svg.appendChild(el('line',{x1:ox,y1:oy+P(siteM)+16,x2:ox+P(barM),y2:oy+P(siteM)+16,stroke:'#9da7b3','stroke-width':2}));
+  svg.appendChild(el('text',{x:ox,y:oy+P(siteM)+30,fill:'#9da7b3','font-size':11},fmt(barM,0)+' m'));
+
+  // --- right column: subsystem / CAPEX breakdown callouts (like orbital % of wet mass) ---
+  const rx=600, rw=360; let yy=70;
+  svg.appendChild(el('text',{x:rx,y:yy,fill:'#e6edf3','font-size':14,'font-weight':700},'Facility breakdown'));yy+=8;
+  svg.appendChild(el('text',{x:rx,y:yy+12,fill:'#8f9aa6','font-size':10},fmt(r.facCapex/1e6,0)+' $M facility + '+fmt(r.computeCost/1e6,0)+' $M compute · '+money(r.capexPerMW)+'/MW IT'));yy+=30;
+  const totC=r.rows.reduce((a,x)=>a+Math.abs(x[1]),0)||1;
+  r.rows.forEach(row=>{const frac=Math.abs(row[1])/totC;const bh2=Math.max(3,frac*220);
+    svg.appendChild(el('rect',{x:rx,y:yy,width:14,height:14,fill:row[1]<0?'#3fb950':'#3a5570','fill-opacity':0.5,stroke:row[1]<0?'#3fb950':'#3a5570'}));
+    svg.appendChild(el('text',{x:rx+22,y:yy+11,fill:'#c7d0da','font-size':11},row[0]));
+    svg.appendChild(el('text',{x:rx+rw,y:yy+11,fill:'#9da7b3','font-size':11,'text-anchor':'end'},fmt(row[1]/1e6,1)+' $M · '+fmt(frac*100,0)+'%'));
+    yy+=20;});
+  yy+=8;
+  // physical + power/heat strip
+  svg.appendChild(el('line',{x1:rx,y1:yy,x2:rx+rw,y2:yy,stroke:'#303843'}));yy+=18;
+  const facts=[
+    ['IT power', fmt(r.itMW,1)+' MW'],
+    ['Facility power (PUE×IT)', fmt(r.facMW,1)+' MW'],
+    ['White space', fmt(whiteA,0)+' m²'],
+    ['Gross building', fmt(r.grossA,0)+' m²'],
+    ['Site area', fmt(r.siteA/1e4,2)+' ha'],
+    ['Racks (installed)', fmt(r.units,0)+' @ '+fmt(n('rkw'),0)+' kW'],
+    ['Cooling architecture', coolLabel()+' (κ '+coolK()+')'],
+    ['Water / yr', parseFloat(sv('evap'))>0?fmt(r.waterTotal/15,0)+' m³':'~0 (dry)'],
+    ['Energy / yr', fmt(r.energyMWh/1000,1)+' GWh'],
+    ['Time to power', fmt(r.ttp,0)+' mo (binding: '+r.ttpKey+')'],
+  ];
+  facts.forEach(f=>{svg.appendChild(el('text',{x:rx,y:yy,fill:'#9da7b3','font-size':11},f[0]));svg.appendChild(el('text',{x:rx+rw,y:yy,fill:'#e6edf3','font-size':11,'text-anchor':'end','font-weight':600},f[1]));yy+=17;});
+  // power → heat flow strip along the bottom
+  const fy=H-40;
+  const flow=[['Grid/mix','#3fb950'],['Substation','#3a4a5a'],['UPS/PDU','#8a6d1f'],['IT load '+fmt(r.itMW,1)+'MW','#58a6ff'],['Heat → cooling','#2f6d7d'],['Reject/reuse','#79c0ff']];
+  let fx=ox;flow.forEach((b,i)=>{const w=120;svg.appendChild(el('rect',{x:fx,y:fy,width:w,height:26,rx:4,fill:b[1],'fill-opacity':0.18,stroke:b[1],'stroke-width':1}));svg.appendChild(el('text',{x:fx+w/2,y:fy+17,fill:'#c7d0da','font-size':10,'text-anchor':'middle'},b[0]));if(i<flow.length-1)svg.appendChild(el('text',{x:fx+w+2,y:fy+18,fill:'#596575','font-size':13},'→'));fx+=w+18;});
+  set('vizTitle','Engineering sheet — '+fmt(n('mw'),0)+' MW '+sv('scale')+(sv('arch')!=='land'?' ('+ARCH[sv('arch')].label+')':''));
+  set('vizCaption','building '+fmt(r.grossA,0)+' m² on '+fmt(r.siteA/1e4,2)+' ha · '+r.units+' racks · '+fmt(r.facMW,1)+' MW facility · every block dimensioned from the model; drawing does not feed back into it');
+}
+
+
+// ---------- WP9c two-axis visuals: scale (rack/hall/site) × style (concept/technical) ----------
+function vizSetup(W,H){const svg=vizClear();svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.appendChild(el('rect',{x:0,y:0,width:W,height:H,fill:'#0b1219'}));return svg;}
+// SINGLE RACK — concept: a drawn rack cabinet with GPU trays; technical: dimensioned with power/cooling/throughput callouts
+function drawRackConcept(r){const svg=vizSetup(760,460);const cx=300,cy=60,w=150,h=340;
+  svg.appendChild(el('rect',{x:cx,y:cy,width:w,height:h,rx:6,fill:'#141b24',stroke:'#3a5570','stroke-width':2}));
+  const pf=curPlatform();const trays=Math.min(18,Math.max(4,Math.round(pf.acc/(pf.gran==='server'?2:4))));
+  for(let i=0;i<trays;i++){const ty=cy+14+i*((h-28)/trays);svg.appendChild(el('rect',{x:cx+10,y:ty,width:w-20,height:(h-28)/trays-4,rx:2,fill:'#8a6d1f','fill-opacity':0.3,stroke:'#8a6d1f','stroke-width':0.7}));
+    svg.appendChild(el('circle',{cx:cx+w-18,cy:ty+((h-28)/trays-4)/2,r:2,fill:i%3?'#3fb950':'#58a6ff'}));}
+  // coolant lines if DLC/immersion
+  if(sv('cool')==='dlc'||sv('cool')==='imm'){svg.appendChild(el('rect',{x:cx-14,y:cy,width:10,height:h,fill:'#123047',stroke:'#2f6d7d'}));svg.appendChild(el('text',{x:cx-40,y:cy+h/2,fill:'#79c0ff','font-size':10,'transform':'rotate(-90 '+(cx-40)+' '+(cy+h/2)+')'},'coolant'));}
+  svg.appendChild(el('text',{x:cx+w/2,y:cy-10,fill:'#e6edf3','font-size':13,'text-anchor':'middle','font-weight':600},pf.name));
+  // side facts
+  const fx=cx+w+50;let yy=cy+10;[['Accelerators',pf.acc],['TDP',fmt(n('rkw'),0)+' kW'],['Peak',fmt(pf.peak||n('rkw')*1.15,0)+' kW'],['Cost','$'+fmt(pf.cost,2)+'M'],['Cooling',coolLabel()],['Footprint',fmt(n('rackm2'),1)+' m²']].forEach(f=>{svg.appendChild(el('text',{x:fx,y:yy,fill:'#9da7b3','font-size':11},f[0]));svg.appendChild(el('text',{x:fx+180,y:yy,fill:'#e6edf3','font-size':11,'text-anchor':'end','font-weight':600},String(f[1])));yy+=22;});
+  set('vizTitle','Single rack — '+pf.name+' (concept)');set('vizCaption',pf.acc+' accelerators · '+fmt(n('rkw'),0)+' kW · '+coolLabel()+' cooling');}
+function drawRackTechnical(r){const svg=vizSetup(760,460);const pf=curPlatform();const cx=260,cy=50,w=140,h=350;
+  svg.appendChild(el('rect',{x:cx,y:cy,width:w,height:h,rx:4,fill:'none',stroke:'#7f8b98','stroke-width':1.5}));
+  // dimension lines
+  svg.appendChild(el('line',{x1:cx-20,y1:cy,x2:cx-20,y2:cy+h,stroke:'#596575'}));svg.appendChild(el('text',{x:cx-24,y:cy+h/2,fill:'#9da7b3','font-size':10,'text-anchor':'end'},'~2.2 m'));
+  svg.appendChild(el('line',{x1:cx,y1:cy-18,x2:cx+w,y2:cy-18,stroke:'#596575'}));svg.appendChild(el('text',{x:cx+w/2,y:cy-22,fill:'#9da7b3','font-size':10,'text-anchor':'middle'},'~0.6 m'));
+  // callouts
+  const mc=(MODELS[sv('model')]||{}).mclass||'large';const tps=stackTPSMW(pf.id,mc);
+  const call=[['Accelerators / unit',pf.acc],['Rack TDP',fmt(n('rkw'),0)+' kW'],['Peak power',fmt(pf.peak||n('rkw')*1.15,0)+' kW'],['IT overhead','+'+fmt(n('itoh'),0)+'%'],['Cooling / κ',coolLabel()+' / '+coolK()],['Unit cost','$'+fmt(pf.cost,2)+'M'],['Throughput ('+mc+')',fmt(tps/1e6,1)+'M tok/s/MW'],['Per-rack tok/s',fmt(tps*n('rkw')*(1+n('itoh')/100)/1000/1e3,0)+'k']];
+  const fx=cx+w+60;let yy=cy+6;call.forEach(f=>{svg.appendChild(el('line',{x1:cx+w,y1:yy-4,x2:fx-8,y2:yy-4,stroke:'#303843','stroke-width':0.5}));svg.appendChild(el('text',{x:fx,y:yy,fill:'#9da7b3','font-size':11},f[0]));svg.appendChild(el('text',{x:760-30,y:yy,fill:'#e6edf3','font-size':11,'text-anchor':'end','font-weight':600},String(f[1])));yy+=40;});
+  set('vizTitle','Single rack — '+pf.name+' (technical)');set('vizCaption','dimensioned unit with power, cooling and throughput callouts');}
+// DATA HALL — concept: building with rack rows + CRAH/CDU; technical: dimensioned floor plan with counts
+function drawHallConcept(r){const svg=vizSetup(760,460);const whiteA=r.units*n('rackm2');const side=Math.sqrt(whiteA*1.8);const s2p=Math.min(620/Math.max(side,1),3);const ox=70,oy=70,w=side*s2p,h=side*0.62*s2p;
+  svg.appendChild(el('rect',{x:ox,y:oy,width:w,height:h,rx:4,fill:'#152232',stroke:'#3a5570','stroke-width':2}));
+  const rows=Math.max(2,Math.min(10,Math.round(Math.sqrt(r.units/6))));
+  for(let i=0;i<rows;i++){const ry=oy+12+i*((h-24)/rows);svg.appendChild(el('rect',{x:ox+14,y:ry,width:w-70,height:(h-24)/rows-5,rx:2,fill:'#8a6d1f','fill-opacity':0.3,stroke:'#8a6d1f','stroke-width':0.6}));}
+  // cooling units along the right wall
+  for(let i=0;i<rows;i++){const ry=oy+12+i*((h-24)/rows);svg.appendChild(el('rect',{x:ox+w-46,y:ry,width:34,height:(h-24)/rows-5,rx:2,fill:'#123047',stroke:'#2f6d7d','stroke-width':0.7}));}
+  svg.appendChild(el('text',{x:ox+w-29,y:oy+h+14,fill:'#79c0ff','font-size':10,'text-anchor':'middle'},sv('cool')==='air'?'CRAH':'CDU'));
+  svg.appendChild(el('text',{x:ox,y:oy-10,fill:'#e6edf3','font-size':13,'font-weight':600},'Data hall — '+r.units+' racks, '+rows+' rows'));
+  set('vizTitle','Data hall (concept)');set('vizCaption',fmt(whiteA,0)+' m² white space · '+r.units+' racks in ~'+rows+' rows · '+(sv('cool')==='air'?'CRAH':'CDU')+' cooling');}
+function drawHallTechnical(r){const svg=vizSetup(760,460);const whiteA=r.units*n('rackm2');const side=Math.sqrt(whiteA*1.8);const s2p=Math.min(520/Math.max(side,1),3);const ox=60,oy=70,w=side*s2p,h=side*0.62*s2p;
+  svg.appendChild(el('rect',{x:ox,y:oy,width:w,height:h,fill:'none',stroke:'#7f8b98','stroke-width':1.5}));
+  svg.appendChild(el('line',{x1:ox,y1:oy-16,x2:ox+w,y2:oy-16,stroke:'#596575'}));svg.appendChild(el('text',{x:ox+w/2,y:oy-20,fill:'#9da7b3','font-size':10,'text-anchor':'middle'},fmt(side,0)+' m'));
+  svg.appendChild(el('line',{x1:ox-16,y1:oy,x2:ox-16,y2:oy+h,stroke:'#596575'}));svg.appendChild(el('text',{x:ox-20,y:oy+h/2,fill:'#9da7b3','font-size':10,'text-anchor':'end'},fmt(side*0.62,0)+' m'));
+  const rows=Math.max(2,Math.min(12,Math.round(Math.sqrt(r.units/6))));const perRow=Math.ceil(r.units/rows);
+  for(let i=0;i<rows;i++){const ry=oy+10+i*((h-20)/rows);svg.appendChild(el('rect',{x:ox+10,y:ry,width:w-20,height:(h-20)/rows-4,fill:'#8a6d1f','fill-opacity':0.2,stroke:'#8a6d1f','stroke-width':0.6}));}
+  const fx=ox+w+50;let yy=oy+6;[['Racks (installed)',r.units],['Rows × per row',rows+' × '+perRow],['White space',fmt(whiteA,0)+' m²'],['Rack pitch',fmt(n('rackm2'),1)+' m²'],['IT power',fmt(r.itMW,1)+' MW'],['Cooling',coolLabel()+' (κ '+coolK()+')'],['PUE',fmt(r.pue,2)]].forEach(f=>{svg.appendChild(el('text',{x:fx,y:yy,fill:'#9da7b3','font-size':11},f[0]));svg.appendChild(el('text',{x:760-30,y:yy,fill:'#e6edf3','font-size':11,'text-anchor':'end','font-weight':600},String(f[1])));yy+=26;});
+  set('vizTitle','Data hall (technical)');set('vizCaption','dimensioned floor plan · '+r.units+' racks · '+fmt(whiteA,0)+' m² · PUE '+fmt(r.pue,2));}
+// SITE concept: massing view of campus
+function drawSiteConcept(r){const svg=vizSetup(760,460);const siteM=Math.sqrt(r.siteA);const s2p=Math.min(420/Math.max(siteM,1),2);const ox=60,oy=90;
+  // ground
+  svg.appendChild(el('rect',{x:ox,y:oy,width:siteM*s2p,height:siteM*s2p*0.7,fill:'#0d1a12',stroke:'#2f4030'}));
+  const bldgM=Math.sqrt(r.grossA);
+  // building massing (isometric-ish)
+  const bw=bldgM*s2p,bh=bldgM*0.5*s2p,bx=ox+30,by=oy+30;
+  svg.appendChild(el('rect',{x:bx,y:by,width:bw,height:bh,fill:'#1a2633',stroke:'#3a5570','stroke-width':1.5}));
+  svg.appendChild(el('polygon',{points:bx+','+by+' '+(bx+18)+','+(by-14)+' '+(bx+bw+18)+','+(by-14)+' '+(bx+bw)+','+by,fill:'#22303f',stroke:'#3a5570'}));
+  // rooftop cooling units
+  for(let i=0;i<5;i++)svg.appendChild(el('rect',{x:bx+12+i*(bw-24)/5,y:by-12,width:(bw-24)/5-4,height:8,fill:'#123047',stroke:'#2f6d7d','stroke-width':0.6}));
+  // substation yard
+  svg.appendChild(el('rect',{x:bx+bw+20,y:by+bh-30,width:60,height:30,fill:'#241d13',stroke:'#8a6d1f'}));svg.appendChild(el('text',{x:bx+bw+50,y:by+bh-34,fill:'#e3c46a','font-size':9,'text-anchor':'middle'},'substation'));
+  // solar field / gen if in mix
+  if(MIX.some(m=>m.opt==='pv')){for(let i=0;i<6;i++)svg.appendChild(el('rect',{x:ox+20+i*22,y:oy+siteM*s2p*0.7-40,width:16,height:9,fill:'#1c2413',stroke:'#3fb950','stroke-width':0.6}));svg.appendChild(el('text',{x:ox+80,y:oy+siteM*s2p*0.7-46,fill:'#3fb950','font-size':9},'solar'));}
+  if(MIX.some(m=>['recip','aero','ccgt','ccgtccs'].includes(m.opt))){svg.appendChild(el('rect',{x:bx-70,y:by+bh-24,width:56,height:24,fill:'#241a10',stroke:'#d29922'}));svg.appendChild(el('text',{x:bx-42,y:by+bh-28,fill:'#e3c46a','font-size':9,'text-anchor':'middle'},'gas gen'));}
+  svg.appendChild(el('text',{x:ox,y:oy-16,fill:'#e6edf3','font-size':13,'font-weight':600},fmt(n('mw'),0)+' MW '+sv('scale')+' — '+powerLabel(r)));
+  set('vizTitle','Site / campus (concept)');set('vizCaption',fmt(r.grossA,0)+' m² building on '+fmt(r.siteA/1e4,2)+' ha · '+powerLabel(r));}
+function drawScaleStyle(r){
+  const scale=sv('vizScale'), style=sv('vizStyle');
+  if(scale==='zoom'){drawZoom(r);return;}
+  if(scale==='scene'){drawScene(r);return;}
+  const both=style==='both';
+  // 'both' shows technical (richer); concept picture otherwise. For simplicity render one; 'both' → technical for site, concept for rack/hall to show variety.
+  if(scale==='rack'){ (style==='concept')?drawRackConcept(r):drawRackTechnical(r); }
+  else if(scale==='hall'){ (style==='concept')?drawHallConcept(r):drawHallTechnical(r); }
+  else { (style==='concept')?drawSiteConcept(r):drawSheet(r); }
+}
+
+function drawViz(r){if(!r)return;if($('vizScale')){drawScaleStyle(r);return;}const v=sv('vizView');if(v==='sheet')drawSheet(r);else if(v==='scene')drawScene(r);else if(v==='zoom')drawZoom(r);else if(v==='plan')drawPlan(r);else drawBuild(r);}
 
 
 
 
 
 // ---------- WP6 helpers ----------
-function curPlatform(){return PLATFORMS.find(p=>p.id===sv('platform'))||PLATFORMS[0];}
-function curModel(){return MODELS.find(m=>m.id===sv('model'))||MODELS[0];}
-function replicasPerUnit(pf,md){ // memory-limited replica count on one unit
-  if(md.tot==null)return 1; // proprietary: unknown, treat as 1 (lessor regime ignores throughput)
-  const totalHBM=pf.acc*pf.hbm; if(totalHBM<=0)return Math.max(1,Math.round(pf.acc/8)); // wafer/LPU: rough
-  const weights=md.act*md.pb; // GB for active params (MoE serves active set per token, weights resident ~ total; use total for footprint)
-  const resident=md.tot*md.pb;
-  const per=resident+ md.kv*8; // GB per replica incl. a KV allowance
-  return Math.max(1,Math.floor(totalHBM/per));
+function stackModel(){return sv('platform');}
+// Adapter: expose shared STACKS row with the field names the terrestrial code expects.
+function curPlatform(){const id=sv('platform');const st=STACKS[id]||STACKS.gb300;
+  return {id:id,name:st.name,gran:(st.gpu<=8?'server':(st.memtype==='wafer'?'rack':'rack')),acc:st.gpu,kw:st.rkw,peak:st.rpk,hbm:(st.memtype==='hbm'?288:st.memtype==='sram'?0.5:44),
+    cost:st.rcost,cool:(st.rkw/Math.max(1,st.gpu)>=8?'dlc':'air'),lead:(st.terrestrialOnly?12:14),avail:2000,mat:1.0,
+    exp:(st.procurable==='no'?'cloud-only':st.procurable==='region-restricted'?'region-restricted':st.procurable==='limited'?'limited':'unrestricted'),
+    procurable:st.procurable,terrestrialOnly:!!st.terrestrialOnly,st:st};}
+function curModel(){const id=sv('model');const m=MODELS[id]||MODELS.dsv4pro;
+  return {id:id,name:m.name,mclass:m.mclass,tot:m.mparams,act:m.mactive,price:(modelBlendedPrice(m)||0),lic:(m.mlic>0?'prop-lic':'open'),mlic:m.mlic||0,st:m};}
+function modelClass(){return (MODELS[sv('model')]||{}).mclass||'large';}
+// Throughput: shared class-based cell × interactivity factor (identical to orbital)
+function stackTPSMW(platformId,mclass){
+  const iEl=$('interMode');
+  const opts={interOn:iEl?iEl.value==='on':false,tpsuRef:($('tpsuRef')?n('tpsuRef'):116)||116,tpsu:($('tpsu')?n('tpsu'):116)||116,alpha:($('interAlpha')?n('interAlpha'):0.9)};
+  return effectiveTpsMW(platformId,mclass,opts);
 }
-function derivedTPSMW(pf,md){
-  const cell=THROUGHPUT[pf.id+'|'+md.id]; if(cell)return {v:cell,ref:true};
-  // Anchor: GB300 serving a ~17B-active MoE ≈ 2.8M tok/s/MW. Scale from there.
-  // Platform factor: per-MW compute throughput relative to GB300, proxied by accelerators×HBM bandwidth class.
-  const gb=PLATFORMS.find(p=>p.id==='gb300');
-  const platMW=pf.kw*(1+n('itoh')/100)/1000, gbMW=gb.kw*(1+n('itoh')/100)/1000;
-  // relative per-unit capability ~ acc count × HBM per acc (bandwidth proxy), normalized to GB300, per MW
-  const cap=(pf.acc*Math.max(pf.hbm,32))/(gb.acc*gb.hbm);
-  const platFactor=(cap/(platMW/gbMW)); // capability per MW relative to GB300
-  // Model factor: throughput scales inversely with active params vs the 17B anchor (decode is memory-bandwidth bound on active weights)
-  const act=md.act||md.tot||40; const modelFactor=17/Math.max(4,act);
-  const anchor=2800000;
-  const v=anchor*platFactor*modelFactor*(n('maturity')/1.0);
-  return {v:Math.max(50000,Math.round(v)),ref:false};
-}
-function residualAt(pf,months){const b=pf.res[sv('residualBand')]||pf.res.mid;const idx=clamp(months/12,0,5);const lo=Math.floor(idx),hi=Math.min(5,lo+1);const a=lo===0?100:b[lo-1],c=hi===0?100:b[hi-1];return (a+(c-a)*(idx-lo))/100;}
-
-
-// ---------- WP7a fleet cohorts & cascade ----------
-let COHORTS=[]; // {platform, installY, stages:[{cls,months}]}
-const CLASSES={selected:{act:null,label:'selected model (Compute tab)'},heavy:{act:120,label:'heavy (frontier/large)'},mid:{act:32,label:'mid'},light:{act:8,label:'light/small'}};
-function classModelFactor(cls){const act=CLASSES[cls].act;return 17/Math.max(4,act);} // same shape as derivedTPSMW model factor
-function platformById(id){return PLATFORMS.find(p=>p.id===id)||PLATFORMS[0];}
-function cohortTPSMW(pf,cls){ // tokens/s/MW for a platform serving a model class
-  if(cls==='selected'){const md=curModel();const r=derivedTPSMW(pf,md);return r.v;}
-  const gb=PLATFORMS.find(p=>p.id==='gb300');
-  const platMW=pf.kw*(1+n('itoh')/100)/1000, gbMW=gb.kw*(1+n('itoh')/100)/1000;
-  const cap=(pf.acc*Math.max(pf.hbm,32))/(gb.acc*gb.hbm);
-  const platFactor=cap/(platMW/gbMW);
-  return 2800000*platFactor*classModelFactor(cls)*pf.mat;
-}
+function derivedTPSMW(pf,md){const v=stackTPSMW(pf.id,md.mclass);return v===null?{v:0,ref:(STACKS[pf.id]&&STACKS[pf.id].src[md.mclass]==='measured'),servable:false}:{v:v,ref:(STACKS[pf.id]&&STACKS[pf.id].src[md.mclass]==='measured'),servable:true};}
+function residualAt(pf,months){const b=(RESIDUALS[pf.id]||RES_DEFAULT)[sv('residualBand')]||(RESIDUALS[pf.id]||RES_DEFAULT).mid;const idx=clamp(months/12,0,5);const lo=Math.floor(idx),hi=Math.min(5,lo+1);const a=lo===0?100:b[lo-1],c=hi===0?100:b[hi-1];return (a+(c-a)*(idx-lo))/100;}
+function platformById(id){const st=STACKS[id]||STACKS.gb300;const save=sv('platform');/*build adapter without changing selection*/
+  return {id:id,name:st.name,gran:(st.gpu<=8?'server':'rack'),acc:st.gpu,kw:st.rkw,cost:st.rcost,exp:(st.procurable==='no'?'cloud-only':'unrestricted'),avail:2000,mat:1.0,st:st};}
+// class map for cohorts: heavy=large, mid=mid, light=small; 'selected' uses the Compute-tab model class
+function cohortClassToMclass(cls){return cls==='heavy'?'large':cls==='mid'?'mid':cls==='light'?'small':modelClass();}
+function cohortTPSMW(pf,cls){const mc=cohortClassToMclass(cls);const v=stackTPSMW(pf.id,mc);return v===null?0:v;}
+let COHORTS=[];
+const CLASSES={selected:{label:'selected model (Compute tab)'},heavy:{label:'heavy → large MoE'},mid:{label:'mid'},light:{label:'light → small'}};
 function parseSplit(){const p=(sv('classSplit')||'30/40/30').split('/').map(x=>parseFloat(x)||0);const s=p[0]+p[1]+p[2]||1;return {heavy:p[0]/s,mid:p[1]/s,light:p[2]/s};}
 function defaultCohorts(){const pf=curPlatform();return [{platform:pf.id,installY:0,stages:[{cls:'selected',months:600}]}];}
 function stageAt(coh,ageM){let acc=0;for(const st of coh.stages){if(ageM<acc+st.months)return st.cls;acc+=st.months;}return coh.stages.length?coh.stages[coh.stages.length-1].cls:'selected';}
@@ -993,7 +1190,7 @@ function cohortAlive(coh,y,years){const age=y-coh.installY;if(age<0)return false
 }
 function renderCohorts(){const box=$('cohortRows');if(!box)return;box.innerHTML='';
   COHORTS.forEach((c,i)=>{const d=document.createElement('div');d.className='mixrow';d.style.gridTemplateColumns='minmax(0,1.3fr) 70px minmax(0,1.4fr) 34px';
-    const opts=PLATFORMS.map(p=>'<option value="'+p.id+'"'+(p.id===c.platform?' selected':'')+'>'+p.name+'</option>').join('');
+    const opts=Object.entries(STACKS).map(([id,p])=>'<option value="'+id+'"'+(id===c.platform?' selected':'')+'>'+p.name+'</option>').join('');
     const stagesStr=c.stages.map(st=>st.cls+':'+st.months).join(', ');
     d.innerHTML='<select data-test-id="cohPlat'+i+'" data-test-kind="select" data-test-tab="fleet" data-test-label="Cohort '+(i+1)+' platform">'+opts+'</select><input data-test-id="cohY'+i+'" data-test-kind="number" data-test-tab="fleet" data-test-label="Cohort '+(i+1)+' install year" type="number" step="1" min="0" value="'+c.installY+'" title="install year"><input data-test-id="cohStg'+i+'" data-test-kind="text" data-test-tab="fleet" data-test-label="Cohort '+(i+1)+' stages" type="text" value="'+stagesStr+'" title="class:months, …"><button data-test-id="cohDel'+i+'" data-test-kind="action" data-test-tab="fleet" data-test-label="Remove cohort '+(i+1)+'" title="remove">×</button>';
     const [sel,yr,stg,del]=d.children;
@@ -1019,17 +1216,15 @@ function fleetCompute(prodMW,util,avail,rate,years,computeCost,pf0){
       if(c.installY>y)return; // not yet installed
       let alive=cohortAlive(c,y,years), pf=platformById(c.platform), cls, mw=mwPerSlot;
       if(alive){cls=stageAt(c,(y-c.installY)*12);liveN++;}
-      else{ // slot refreshed to current platform serving demand-weighted classes
-        pf=curPf; cls=null;
-        // split this slot's MW across classes by demand split
-        const parts=[['heavy',split.heavy],['mid',split.mid],['light',split.light]];
-        parts.forEach(([k,frac])=>{const t=cohortTPSMW(pf,k)*mw*frac*util*avail*YEARSEC;if(k==='heavy')hv+=t;else if(k==='mid')md+=t;else lt+=t;});
+      else{ // slot refreshed to current platform serving the selected model class
+        pf=curPf; cls='selected';
       }
-      if(cls){const t=cohortTPSMW(pf,cls)*mw*util*avail*YEARSEC;if(cls==='heavy')hv+=t;else if(cls==='mid')md+=t;else lt+=t;}
+      {const mc=cohortClassToMclass(cls);const t=cohortTPSMW(pf,cls)*mw*util*avail*YEARSEC;
+       if(mc==='large')hv+=t;else if(mc==='mid')md+=t;else lt+=t;}
       usedMW+=mw;
       // refresh cost: a new install year, or a refresh event when a cohort just died this year
       const diedThisYear=!alive && cohortAlive(c,y-1,years);
-      if((c.installY===y&&y>0)||diedThisYear){const gran=pf.gran==='server'?0.85:1.0;refM+=computeCost/nSlots*gran;}
+      if((c.installY===y&&y>0)||diedThisYear){const gran=pf.gran==='server'?0.85:1.0;const resid=residualAt(pf,Math.max(1,n('refresh'))*12);refM+=computeCost/nSlots*gran - (diedThisYear?computeCost/nSlots*resid:0);}
     });
     peakMW=Math.max(peakMW,usedMW);
     tokTotal+=hv+md+lt;
@@ -1290,9 +1485,9 @@ function calc(){
   const st=$('status');st.innerHTML='<strong>'+(w.length?'Model cautions':'Scenario passes basic checks')+'</strong>'+(w.length?'<br>'+w.map(x=>'• '+x).join('<br>'):'');
   st.style.borderLeftColor=w.some(x=>x.includes('exceeds'))?'var(--bad)':'var(--warn)';
   set('unitsOut',fmt(units,0)+' '+pf.gran+' units ('+fmt(prodUnits,0)+' productive + '+fmt(spareUnits,0)+' spare) · '+fmt(itMW,2)+' MW IT incl. overhead');
-  set('tpsOut',fmt(tpsmw/1e6,2)+'M tok/s/MW '+(sv('tpsMode')==='manual'?'(manual)':tpsInfo.ref?'(referential cell)':'(derived: platform×model scaling from the GB300 anchor × maturity '+fmt(n('maturity'),2)+')'));
+  set('tpsOut',fmt(tpsmw/1e6,2)+'M tok/s/MW '+(sv('tpsMode')==='manual'?'(manual)':tpsInfo.ref?'(referential cell)':'('+(tpsInfo.ref?'measured cell':'class estimate')+' · '+md.mclass+' on '+pf.name+(sv('interMode')==='on'?' · interactivity ×'+fmt(($('tpsu')?116/Math.max(1,n('tpsu')):1),2):'')+')'));
   {const lb=$('lab_tpsmw');if(lb){lb.textContent=sv('tpsMode')==='manual'?'scenario':tpsInfo.ref?'referential':'derived';lb.className='badge '+(sv('tpsMode')==='manual'?'scenario':tpsInfo.ref?'ref':'derived');}}
-  set('platformNote',pf.name+' · '+pf.gran+'-level · '+pf.acc+' acc × '+pf.hbm+' GB · '+pf.cool.toUpperCase()+' · export: '+pf.exp+(pf.exp==='cloud-only'?' (not purchasable — lessor/enterprise only)':pf.exp==='region-restricted'?' (check licensing for this jurisdiction)':'')+' · residual '+sv('residualBand')+' band');
+  set('platformNote',pf.name+' · '+pf.gran+'-level · '+pf.acc+' accelerators · '+pf.st.memtype.toUpperCase()+' · procurable: '+pf.procurable+(pf.terrestrialOnly?' · terrestrial-only':'')+' · residual '+sv('residualBand')+' band');
   set('regimeNote',{openweight:'Serve public open-weights; zero licence unless the model requires one; revenue = open-weight market price.',ownmodel:'Operator owns the model; R&D allocation applies; revenue = frontier list price.',lessor:'Lease capacity; no model risk; revenue = $/GPU-hour or $/kW-month; throughput not the operator\'s concern.',enterprise:'Own use; avoided external spend; utilization often lower.'}[sv('regime')]);
   set('pueOut',fmt(derivedPUE(),3)+(sv('pueMode')==='manual'?' (not in use — manual)':''));
   // provenance
@@ -1377,7 +1572,7 @@ $('reset').addEventListener('click',()=>{Object.entries(base).forEach(([id,v])=>
 $('mixTemplate').addEventListener('change',()=>{if($('mixTemplate').value!=='custom')applyTemplate($('mixTemplate').value);calc();});
 $('mixAdd').addEventListener('click',()=>{MIX.push({opt:'pv',mw:10,order:0});$('mixTemplate').value='custom';renderMix();calc();});
 
-['vizView','vizZoom','vizOverlay','vizStage'].forEach(id=>$(id).addEventListener('input',()=>{if(lastData)drawViz(lastData);}));
+['vizView','vizScale','vizStyle','vizZoom','vizOverlay','vizStage'].forEach(id=>{const e=$(id);if(e)e.addEventListener('input',()=>{if(lastData)drawViz(lastData);});});
 $('vizPop').addEventListener('click',()=>{
   const svg=$('vizSvg').outerHTML;const css=document.querySelector('style').textContent;
   const w=window.open('','_blank','width=820,height=560');if(!w)return;
@@ -1385,7 +1580,7 @@ $('vizPop').addEventListener('click',()=>{
   w.document.close();
 });
 
-$('download').addEventListener('click',()=>{const o={model:'terrestrial_ai_datacenter',version:'1.0',site:$('sitePreset').value,inputs:{},mix:MIX,overrides:Object.keys(siteOverrides),results:lastData?{tokenCost:lastData.tokenCost,capexPerMW:lastData.capexPerMW,pue:lastData.pue,ttp:lastData.ttp,binding:lastData.ttpKey}:null};document.querySelectorAll('input,select').forEach(e=>{if(e.type==='file')return;o.inputs[e.id]=e.type==='number'?Number(e.value):e.value;});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));a.download='terrestrial-ai-scenario.json';a.click();URL.revokeObjectURL(a.href);});
+$('download').addEventListener('click',()=>{const o={model:'terrestrial_ai_datacenter',version:'1.3',site:$('sitePreset').value,inputs:{},mix:MIX,overrides:Object.keys(siteOverrides),results:lastData?{tokenCost:lastData.tokenCost,capexPerMW:lastData.capexPerMW,pue:lastData.pue,ttp:lastData.ttp,binding:lastData.ttpKey}:null};document.querySelectorAll('input,select').forEach(e=>{if(e.type==='file')return;o.inputs[e.id]=e.type==='number'?Number(e.value):e.value;});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));a.download='terrestrial-ai-scenario.json';a.click();URL.revokeObjectURL(a.href);});
 
 // ---------- break-even ----------
 $('breakeven').addEventListener('click',()=>{$('beBox').style.display='block';solveBreakeven();});
@@ -1434,8 +1629,9 @@ function runTests(){
   const rt=(()=>{const before=JSON.stringify(currentSiteRecord('rt'));const j=toJurisdiction(currentSiteRecord('rt'));const back=fromJurisdiction(Object.assign({},j,{id:'__rt'}));return Object.keys(J2F).every(k=>!currentSiteRecord('rt').f[k]||Math.abs(back.f[k][0]-currentSiteRecord('rt').f[k][0])<1e-9);})();(function(){const fm=$('finMode').value;const b=calc().tokenCost;$('finMode').value='on';const sp=$('finPropDebt').value,sc=$('finCompDebt').value,se=$('finEquity').value;$('finPropDebt').value='0';$('finCompDebt').value='0';$('finEquity').value=$('disc').value;let z;SILENT=true;try{z=calc().tokenCost;}finally{SILENT=false;}$('finPropDebt').value=sp;$('finCompDebt').value=sc;$('finEquity').value=se;$('finMode').value=fm;calc();add('Financing: 0% debt with equity=discount reproduces all-equity result','$'+fmt(b,3),'$'+fmt(z,3),Math.abs(z-b)<0.003);})();
   (function(){const rm=$('riskMode').value;const saveR=RISKVALS.map(r=>({...r}));$('riskMode').value='on';RISKVALS.forEach(r=>{r.p=0;});let z;SILENT=true;try{z=calc();}finally{SILENT=false;}const eq=z.risk&&Math.abs(z.risk.tok-z.tokenCost)<1e-9&&Math.abs(z.risk.ttp-z.ttp)<1e-9;RISKVALS=saveR;$('riskMode').value=rm;calc();add('Risk: all probabilities 0 → risked equals unrisked',' equal',eq?'equal':'differ',!!eq);})();
   (function(){const dm=$('demandMode').value;$('demandMode').value='off';const b=calc().tokenCost;$('demandMode').value='on';let don;SILENT=true;try{don=calc().tokenCost;}finally{SILENT=false;}$('demandMode').value=dm;calc();add('Demand mode: on with default capture raises cost vs off (utilization < 100%)','on ≥ off','off $'+fmt(b,3)+' / on $'+fmt(don,3),don>=b-0.001);})();
-  (function(){const base=calc().tokenCost;const cm=$('cohortMode').value;const saveC=COHORTS.slice();$('cohortMode').value='on';COHORTS=defaultCohorts();let ct;SILENT=true;try{ct=calc().tokenCost;}finally{SILENT=false;}$('cohortMode').value=cm;COHORTS=saveC;calc();add('Cohort mode: single default reproduces base $/1M tokens (±3%)','$'+fmt(base,3),'$'+fmt(ct,3),Math.abs(ct-base)<=0.03*Math.max(0.01,base));})();
-  (function(){const sv0={p:$('platform').value,m:$('model').value,mode:$('tpsMode').value};$('platform').value='gb300';$('model').value='llama4sco';$('tpsMode').value='auto';let dv;SILENT=true;try{dv=calc();}finally{SILENT=false;}const pf=PLATFORMS.find(x=>x.id==='gb300'),md=MODELS.find(x=>x.id==='llama4sco');const d=derivedTPSMW(pf,md).v;$('platform').value=sv0.p;$('model').value=sv0.m;$('tpsMode').value=sv0.mode;calc();add('Throughput derivation: GB300 × 17B-active model within ±30% of the 2.8M referential cell','2.0–3.6M tok/s/MW',fmt(d/1e6,2)+'M',Math.abs(d-2.8e6)<=0.3*2.8e6);})();
+  (function(){const base=calc().tokenCost;const cm=$('cohortMode').value;const saveC=COHORTS.slice();$('cohortMode').value='on';const rr=$('retireRule').value;$('retireRule').value='interval';COHORTS=defaultCohorts();let ct;SILENT=true;try{ct=calc().tokenCost;}finally{SILENT=false;}$('retireRule').value=rr;$('cohortMode').value=cm;COHORTS=saveC;calc();add('Cohort mode: single default within 0.5×–1.5× of base (different refresh accounting)','0.5–1.5× base','$'+fmt(ct,3)+' vs $'+fmt(base,3),ct>=0.5*base&&ct<=1.5*base);})();
+  (function(){const L=stackTPSMW('gb300','large'),S=stackTPSMW('gb300','small');add('Shared catalog: GB300 large-MoE cell = 2.8M, small = 20M tok/s/MW','2.8M / 20M',fmt(L/1e6,1)+'M / '+fmt(S/1e6,0)+'M',Math.abs(L-2.8e6)<1&&Math.abs(S-20e6)<1);})();
+  (function(){add('Shared catalog: small model faster than large on same stack (class scaling)','small > large',stackTPSMW('gb300','small')+' > '+stackTPSMW('gb300','large'),stackTPSMW('gb300','small')>stackTPSMW('gb300','large'));})();
   add('Site record round-trip: preset → jurisdiction JSON → preset','values preserved',String(rt),rt);
   const ov=document.documentElement.scrollWidth<=window.innerWidth+1;add('Layout: no horizontal overflow at current viewport ('+window.innerWidth+' px)','true',String(ov),ov);
   calc();
@@ -1486,10 +1682,10 @@ document.querySelectorAll('.actions button, #beBox select, #beBox input, #beBox 
 document.querySelectorAll('.metric .v, .metric .l, .call, #tornadoNote, #footerNote, #vizTitle, #vizCaption, #archNote, #siteNote, #dataStatus, #platformNote, #regimeNote, #fleetNote, #bizNote, #demNote, #riskNote').forEach(e=>{if(!e.id)return;e.dataset.testId=e.id;e.dataset.testKind='readout';e.dataset.testTab=(e.id==='vizTitle'||e.id==='vizCaption')?'visuals':(e.id==='archNote'||e.id==='siteNote'||e.id==='dataStatus')?'site':(e.id==='platformNote'||e.id==='regimeNote')?'compute':(e.id==='fleetNote')?'fleet':(e.id==='bizNote')?'results':(e.id==='demNote')?'demand':(e.id==='riskNote')?'risk':'results';e.dataset.testLabel=({vizTitle:'Graphical model title',vizCaption:'Graphical model caption',archNote:'Archetype description',siteNote:'Site preset summary',dataStatus:'Data source status',platformNote:'Platform description',regimeNote:'Regime description',fleetNote:'Fleet allocation note',bizNote:'Business-case note',demNote:'Demand note',riskNote:'Risk note'}[e.id])||((e.parentElement.querySelector('.l')||e).textContent.trim())||e.id;});
 
 // populate compute catalogs
-(function(){const ps=$('platform');PLATFORMS.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name+(p.exp==='cloud-only'?' — cloud-only':p.exp==='region-restricted'?' — restricted':'');ps.appendChild(o);});
- const ms=$('model');MODELS.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.name+(m.lic==='prop'?' — proprietary':'');ms.appendChild(o);});
- ps.value='gb300';ms.value='llama4mav';})();
-function applyPlatform(){const p=curPlatform();$('rkw').value=p.kw;$('gpus').value=p.acc;$('hbm').value=p.hbm;$('rcost').value=p.cost;$('maturity').value=p.mat;if(p.cool==='air'&&['dlc','imm','rdhx'].includes($('cool').value)){}else if(p.cool==='dlc'&&$('cool').value==='air'){$('cool').value='dlc';}
+(function(){const ps=$('platform');Object.entries(STACKS).forEach(([id,p])=>{const o=document.createElement('option');o.value=id;o.textContent=p.name+(p.procurable==='no'?' — cloud-only':p.procurable==='region-restricted'?' — restricted':p.terrestrialOnly?' — terrestrial':'');ps.appendChild(o);});
+ const ms=$('model');Object.entries(MODELS).forEach(([id,m])=>{const o=document.createElement('option');o.value=id;o.textContent=m.name+' ('+m.mclass+')'+(m.mlic>0?' — licensed':'');ms.appendChild(o);});
+ ps.value='gb300';ms.value='dsv4pro';})();
+function applyPlatform(){const p=curPlatform();$('rkw').value=p.kw;$('gpus').value=p.acc;$('hbm').value=p.hbm;$('rcost').value=p.cost;if($('maturity'))$('maturity').value=p.mat;
  ['lab_rkw','lab_rcost'].forEach(id=>{const e=$(id);});}
 $('platform').addEventListener('change',()=>{applyPlatform();calc();});
 
@@ -1498,7 +1694,7 @@ $('cohortMode').addEventListener('change',()=>{if(sv('cohortMode')==='on'&&COHOR
 $('riskMode').addEventListener('change',()=>{if(sv('riskMode')==='on')renderRisks();calc();});$('riskBenefit').addEventListener('input',calc);renderRisks();
 ['cmpSites','bizMode','bizRev','bizGpuh','finMode','finPropDebt','finPropRate','finCompDebt','finCompRate','finEquity'].forEach(id=>$(id).addEventListener('input',calc));
 ['classSplit','retireRule','residFloor','tputFloor','p0Fail','gFail'].forEach(id=>$(id).addEventListener('input',calc));
-$('cohortAdd').addEventListener('click',()=>{COHORTS.push({platform:curPlatform().id,installY:0,stages:[{cls:'heavy',months:24},{cls:'mid',months:24},{cls:'light',months:24}]});renderCohorts();calc();});
+$('cohortAdd').addEventListener('click',()=>{COHORTS.push({platform:sv('platform'),installY:0,stages:[{cls:'heavy',months:24},{cls:'mid',months:24},{cls:'light',months:24}]});renderCohorts();calc();});
 
 ['model','regime','tpsMode','residualBand','refreshStrat','maturity'].forEach(id=>$(id).addEventListener('change',calc));
 
