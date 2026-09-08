@@ -45,6 +45,7 @@ The page runs from its embedded presets with no network. On GitHub Pages the wor
 | `data/carbon.json` | `scripts/build_carbon.py` | Ember yearly electricity data (CC BY 4.0) | monthly |
 | `data/ixp.json` | `scripts/build_ixp.py` | PeeringDB | monthly |
 | `data/climate_grid.json` | `scripts/build_climate_grid.py` | ERA5 via Copernicus CDS (needs a free `CDS_TOKEN` secret) | when the script changes |
+| `data/planned_terrestrial.json` | `scripts/research_planned.py` (run locally) | LLM web search, confidence-tagged | on demand |
 | `data/resources.json` | hand-curated, committed | Global Solar/Wind Atlas, geothermal atlases, per-record notes | as changed |
 | `data/power_options.json` | hand-curated, committed | Lazard LCOE+, NREL ATB, IEA | as changed |
 

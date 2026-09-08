@@ -1,6 +1,6 @@
 # Terrestrial AI Data Center Siting and Economics Model
 
-**Modeling Tool Specification — Revision 1.3**
+**Modeling Tool Specification — Revision 1.4**
 Companion tool: `index.html` (repository root; not yet built)
 Status: **Draft** — scope and parameter map for review before implementation
 Base compute unit: 135 kW / 72-GPU GB300-class rack (identical to the orbital model), now one row of a platform catalog (§4b)
@@ -19,19 +19,25 @@ Bottom-up, same discipline as the orbital model: what can be computed from physi
 
 ## 2. Revision history
 
-### 2.1 Revision 1.3 — two-axis visuals (scale × style)
+### 2.1 Revision 1.4 — planned builds
+
+| # | Change | Rationale |
+|---|---|---|
+| 39 | **Planned builds** panel loads `data/planned_terrestrial.json` — planned/under-construction AI datacenters compiled by a **local** LLM web-search runner (`scripts/research_planned.py`), never from the page. Every field is confidence-tagged (known/reported/inferred); the panel shows the generated (as-of) date prominently and exposes sources in per-row details. `scripts/validate_planned.py` gates the file (known/reported need a source URL, inferred needs a note). GitHub Pages only serves the JSON — no key, no server, no CI LLM call | Adds forward-looking context (who is building what, where, when) without a cloud secret: the research runs on the local clone, the result is committed, Pages serves it. Existing data files and the live tracked-satellite catalog are untouched. |
+
+### 2.3 Revision 1.3 — two-axis visuals (scale × style)
 
 | # | Change | Rationale |
 |---|---|---|
 | 38 | Visual subsystem restructured to the orbital tool's two-axis model: **Scale** (single rack · data hall · site/campus, plus Location map and archetype Siting scene) × **Style** (Concept picture · Technical engineering). Rack: drawn cabinet with accelerator trays (concept) or dimensioned unit with power/cooling/throughput callouts (technical). Hall: rack rows + cooling units (concept) or dimensioned floor plan with counts (technical). Site: campus massing (concept) or the engineering sheet (technical) | Direct equivalence with the orbital Single-Satellite / Cluster / System-Overview views and its Concept/Technical style toggle. Terrestrial previously drew only technical-style views and had no rack-scale drawing. |
 
-### 2.3 Revision 1.2 — engineering sheet
+### 2.4 Revision 1.2 — engineering sheet
 
 | # | Change | Rationale |
 |---|---|---|
 | 37 | Datacenter **engineering sheet** visual (`drawSheet`): a dimensioned facility drawing — building, MEP/electrical yard, cooling plant, on-site power, substation, water/heat and rack rows sized from siteA/grossA — with a CAPEX breakdown by cost share, a physical facts table (IT/facility MW, white/gross/site area, racks, energy, time-to-power) and a power→heat flow strip. The land archetype's scene view uses it | The terrestrial equivalent of the orbital tool's engineering sheet, which shows what the spacecraft physically is and how it is dimensioned. The build-up view showed assembly stages but not the actual dimensioned building. |
 
-### 2.4 Revision 1.1 — shared compute catalog
+### 2.5 Revision 1.1 — shared compute catalog
 
 | # | Change | Rationale |
 |---|---|---|
@@ -39,28 +45,28 @@ Bottom-up, same discipline as the orbital model: what can be computed from physi
 | — | **Throughput correction:** 2.8M tok/s/MW is the GB300 **large-MoE** cell (DeepSeek-class at ~116 tok/s/user, SemiAnalysis/NVIDIA 2026), not a universal figure. Small models run ~7× faster on the same rack; this now flows through $/1M tokens for every model | Fixes the inconsistency where a light model (Llama/gpt-oss) was priced as if it ran at heavy-model throughput. |
 | 36 | Model selector, interactivity mode (target tok/s/user, exponent α) added to the Compute tab, mirroring the orbital controls | So model choice drives the calculation in both tools symmetrically. |
 
-### 2.5 Revision 1.0 — feature-complete
+### 2.6 Revision 1.0 — feature-complete
 
 | # | Change | Rationale |
 |---|---|---|
 | 34 | Tool v0.9–v1.0 (WP7a–d): fleet cohorts & cascade (§13.4), demand-driven utilization (§4c), risk register with expected-value adjustments (§12a), multi-site comparison, business case and PropCo/ComputeCo financing (§13.3, §16.2). All five modules off by default; parity and every prior anchor preserved | Completes the planned model. The default view remains the defensible deterministic cost question; the toggles add the fleet, demand, risk and business-case layers on request. |
 | — | **Status: feature-complete; reference values pending audit.** Every economic baseline and referential figure (jurisdiction data, LCOE, platform/model costs, prices, availability years) is labelled and dated but not yet checked against primary sources | The next phase is a data-audit pass, not more features. |
 
-### 2.6 Revision 0.9
+### 2.7 Revision 0.9
 
 | # | Change | Rationale |
 |---|---|---|
 | 32 | Tool v0.8 (WP6 first pass): compute platform catalog (11 rows), served-model catalog (9 open-weight + 3 proprietary), operator regime, throughput from a referential matrix or a memory-/capability-scaled derivation × maturity, refresh cost by rack/server/component granularity, three-band residual-value curves with hold vs rotate-and-resell, accelerator import duty, licence/R&D opex lines; `data/platforms.json`, `models.json`, `throughput.json`, `leadtimes.json` mirror the catalogs | Implements §4a/§4b/§13.2. Proprietary models are lease-only; cloud-only platforms are shown, badged and excluded from self-build regimes. |
 | 33 | **Base regression re-anchored** at $0.161/1M tokens (was $0.234): the mid residual-value curve replaces straight-line salvage as the default. Straight-line is retained as a selectable mode and is what the parity self-test uses; parity holds at $0.2473 | Economic depreciation of compute is the intended default (§13.2); the change is a model decision, recorded here, not a regression. |
 
-### 2.7 Revision 0.8
+### 2.8 Revision 0.8
 
 | # | Change | Rationale |
 |---|---|---|
 | 30 | Tool v0.5 (WP9): graphical model subsystem — location zoom (global→region→site on the pin, with grid-carbon/water/hazard overlays), above-site plan (footprint sized from the model), datacenter build-up (staged assembly by design), pop-out; hand-rolled SVG on the orbital coastline asset | Parity with the orbital visual layer this app deferred; every drawn dimension traces to a model value and never feeds back into the calculation. |
 | 31 | Tool v0.6 (WP10): siting archetypes — floating/offshore, submerged/underwater, mountain+pumped-hydro; each replaces land+shell with a structure term, sets cooling (seawater WUE 0), power eligibility and availability (weather/recovery downtime), and adds a siting-scene rendering. Pumped hydro is energy-limited: stored MWh = ρgHVη, firm hours = stored ÷ facility MW | Implements the queued §WP10; the pumped-hydro case makes the §8 dispatch genuinely energy-constrained rather than MWh-nameplate. |
 
-### 2.7 Revision 0.7
+### 2.8 Revision 0.7
 
 | # | Change | Rationale |
 |---|---|---|
@@ -69,14 +75,14 @@ Bottom-up, same discipline as the orbital model: what can be computed from physi
 | 29 | Tool v0.4 (step 5): catalog of 21 generation options with site LCOE, resource-layer stub per site (solar/wind CF, geothermal class, gas access, contractable hydro/plant MW, nuclear policy, gas price), seven resource-aware supply-mix templates sized by firmness, merit-order dispatch per operating year producing firm-equivalent $/MWh and gCO₂/kWh that feed the spine, on-site generation capex in the stack, time-to-power from the mix as a candidate binding term; `data/power_options.json` mirrors the catalog | Implements §8a–8d and §8c.1. Unserved load is priced at 3× tariff as a visible penalty rather than silently ignored. Backup gensets moved from the MEP baseline into the mix. |
 | 28 | Tool v0.3: custom sites saved in browser, export/import as jurisdiction-style JSON, curated `data/jurisdictions.json` replaces embedded presets when served, `data-test-*` tags on every interactive element and readout (shared testability convention) | Presets seed, they do not constrain; agent-testable UI from the first build. |
 
-### 2.8 Revision 0.6
+### 2.9 Revision 0.6
 
 | # | Change | Rationale |
 |---|---|---|
 | 24 | Fleet cohorts with cascade paths and per-cohort retirement rules (§13.4) | Economic lifecycle must be configurable: a cohort may be kept beyond refresh, moved to lighter models while new hardware serves heavy ones, or run to failure. The facility's fixed MW is the constraint the cascade competes for. |
 | 25 | UI: same design system as the orbital tool (CSS, panel and input-row markup, footer, self-test and spec modals lifted from its `index.html`); responsive single-column layout below ~700 px (§3.5) | Continuity across the two tools; the orbital page is not mobile-usable. |
 
-### 2.9 Revision 0.5 — research pass before build
+### 2.10 Revision 0.5 — research pass before build
 
 | # | Change | Rationale |
 |---|---|---|
@@ -87,14 +93,14 @@ Bottom-up, same discipline as the orbital model: what can be computed from physi
 | 22 | Air permit and fuel-supply agreement as explicit lead items for on-site gas; will-serve vs contracted capacity distinction (§8a, §14.4) | Powered land means contracted capacity by a date, or in-hand air permits and fuel access. |
 | 23 | Minor: DRAM/HBM/SSD shortage rows in lead times; security opex baseline; community-benefit payment lowering opposition probability; decommissioning cost at horizon | Closing the residual gaps from the review. |
 
-### 2.10 Revision 0.4
+### 2.11 Revision 0.4
 
 | # | Change | Rationale |
 |---|---|---|
 | 16 | Power supply catalog, location resource layer and supply mix by period (§8a–8d) | On-site generation was a single "gas" option. Power viability is technology × location × date: geothermal or hydro contracts can be immediate in Iceland or Norway; gas recips lead in Texas; SMRs and portable microreactors have earliest-availability years that gate them regardless of lead time. Time-to-power becomes the date the mix first covers the load. |
 | 17 | Existing-plant proximity as a resource (§8b) | Co-location with stranded or retiring capacity is a live siting strategy. Curated per site; v1.x. |
 
-### 2.11 Revision 0.3
+### 2.12 Revision 0.3
 
 | # | Change | Rationale |
 |---|---|---|
@@ -107,14 +113,14 @@ Bottom-up, same discipline as the orbital model: what can be computed from physi
 | 14 | Compute platform catalog with platform × model throughput matrix; rack / server / component granularity (§4b) | The rack was a single NVIDIA anchor. Competing stacks differ in cost, power density, cooling need, availability and software maturity. |
 | 15 | Component-level refresh option (§13.2) | Server-in-rack replacement is cheaper than rack-scale replacement and depends on platform granularity. |
 
-### 2.12 Revision 0.2
+### 2.13 Revision 0.2
 
 | # | Change | Rationale |
 |---|---|---|
 | 6 | Input-type vocabulary anchor / referential / baseline / scenario / derived (§3.3) | Looked-up values are dated baselines the user overrides per project; the provenance count separates referenced from assumed. |
 | 7 | Seed jurisdictions extended to Africa, South America, second Australian state (§7) | Layer A was global; Layer B was not. |
 
-### 2.13 Revision 0.1 — scope and parameter map
+### 2.14 Revision 0.1 — scope and parameter map
 
 | # | Decision | Rationale |
 |---|---|---|

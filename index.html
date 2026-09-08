@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Terrestrial AI Data Center Siting and Economics Model (v1.3)</title>
+<title>Terrestrial AI Data Center Siting and Economics Model (v1.4)</title>
 <style>
 :root{
   --bg:#0d1117;--panel:#151b23;--panel2:#1b2330;--panel3:#10161e;
@@ -82,10 +82,18 @@ code{background:#0d1117;padding:2px 4px;border-radius:4px}
     <button id="breakeven">Break-even solver</button>
     <button id="runtests">Run self-tests</button>
     <button id="openSpec">Specification</button>
+    <button id="openPlanned">Planned builds</button>
     <span class="badge" id="siteBadge">Site: —</span>
     <span class="badge" id="provBadge">Provenance: —</span>
   </div>
 
+  <div id="plannedModal" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.55)">
+    <div style="position:absolute;inset:4vh 6vw;background:var(--panel);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;overflow:hidden">
+      <div class="row" style="padding:10px 14px;border-bottom:1px solid var(--line)"><strong>Planned terrestrial AI datacenters</strong>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="badge" id="plannedAsOf">—</span><label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)">load file: <input type="file" id="plannedFile" accept=".json,application/json" style="min-height:auto;font-size:11px"></label><button id="plannedClose" style="min-height:30px">Close</button></div></div>
+      <div id="plannedBody" style="overflow:auto;padding:14px 18px"></div>
+    </div>
+  </div>
   <div id="specModal">
     <div>
       <div class="row" style="padding:10px 14px;border-bottom:1px solid var(--line)"><strong>Model specification</strong>
@@ -488,6 +496,7 @@ code{background:#0d1117;padding:2px 4px;border-radius:4px}
 
 <footer>
   <strong>Model integrity notes</strong><br>
+  <strong>v1.4 (planned builds):</strong> a Planned builds button loads <code>data/planned_terrestrial.json</code> — planned/under-construction AI datacenters compiled by local LLM web search (<code>scripts/research_planned.py</code>), never from the page. Each field is confidence-tagged (known/reported/inferred); the table shows the as-of date, sources live in per-row details. Lead list to verify, not authoritative.<br>
   <strong>v1.3 (WP9c):</strong> visuals restructured to the orbital tool's two-axis model — Scale (single rack · data hall · site/campus, plus Location map and Siting scene) × Style (Concept picture · Technical engineering). Rack and hall gain concept and dimensioned-technical renderings; site technical is the engineering sheet, site concept a campus massing view.<br>
   <strong>v1.2 (WP9b):</strong> datacenter engineering sheet — dimensioned facility view (building, MEP, cooling plant, on-site power, substation, water/heat, rack rows) sized from the model, CAPEX breakdown by cost share, physical facts table, power→heat flow strip; the terrestrial equivalent of the orbital engineering sheet.<br>
   <strong>v1.0 (WP7d):</strong> multi-site comparison (up to 4 presets side by side), business case (open-weight market price or lessor $/GPU-hour → margin and payback), and financing (PropCo/ComputeCo debt → blended WACC replacing the discount rate). All three off by default; feature set complete through the plan. Reference values still to be audited.<br>
@@ -1580,7 +1589,7 @@ $('vizPop').addEventListener('click',()=>{
   w.document.close();
 });
 
-$('download').addEventListener('click',()=>{const o={model:'terrestrial_ai_datacenter',version:'1.3',site:$('sitePreset').value,inputs:{},mix:MIX,overrides:Object.keys(siteOverrides),results:lastData?{tokenCost:lastData.tokenCost,capexPerMW:lastData.capexPerMW,pue:lastData.pue,ttp:lastData.ttp,binding:lastData.ttpKey}:null};document.querySelectorAll('input,select').forEach(e=>{if(e.type==='file')return;o.inputs[e.id]=e.type==='number'?Number(e.value):e.value;});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));a.download='terrestrial-ai-scenario.json';a.click();URL.revokeObjectURL(a.href);});
+$('download').addEventListener('click',()=>{const o={model:'terrestrial_ai_datacenter',version:'1.4',site:$('sitePreset').value,inputs:{},mix:MIX,overrides:Object.keys(siteOverrides),results:lastData?{tokenCost:lastData.tokenCost,capexPerMW:lastData.capexPerMW,pue:lastData.pue,ttp:lastData.ttp,binding:lastData.ttpKey}:null};document.querySelectorAll('input,select').forEach(e=>{if(e.type==='file')return;o.inputs[e.id]=e.type==='number'?Number(e.value):e.value;});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));a.download='terrestrial-ai-scenario.json';a.click();URL.revokeObjectURL(a.href);});
 
 // ---------- break-even ----------
 $('breakeven').addEventListener('click',()=>{$('beBox').style.display='block';solveBreakeven();});
@@ -1670,6 +1679,42 @@ async function loadSpec(){if(SPEC_MD)return SPEC_MD;try{const r=await fetch('./t
 async function showSpec(){$('specModal').style.display='block';const md=await loadSpec();$('specBody').innerHTML=md?renderMd(md):'<p class="muted">The specification file could not be fetched from this location (from a <code>file://</code> origin browsers block sibling-file reads). Use "load file" above to open <code>terrestrial_datacenter_model_specification.md</code> from disk, or view it on the GitHub Pages site where it loads automatically.</p>';}
 function specWindow(){const md=SPEC_MD;if(!md){alert('Load the specification first (fetch or file).');return;}const css=document.querySelector('style').textContent;const w=window.open('','_blank','width=1000,height=800');if(!w)return;w.document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Terrestrial AI DC model — specification</title><style>'+css+'</style></head><body><div class="wrap"><div id="specBody">'+renderMd(md)+'</div></div></body></html>');w.document.close();}
 $('openSpec').addEventListener('click',showSpec);
+
+// ---------- Planned builds (loads data/planned_terrestrial.json; refreshed locally via scripts/research_planned.py) ----------
+let PLANNED=null;
+function confBadge(c){const cls=c==='known'?'ref':c==='reported'?'baseline':'scenario';const lbl=c==='known'?'known':c==='reported'?'reported':'inferred';return '<span class="badge '+cls+'" title="'+(c==='known'?'operator/official source':c==='reported'?'press/analyst':'our estimate, not directly sourced')+'">'+lbl+'</span>';}
+function fldVal(f){return (f&&typeof f==='object'&&'value'in f)?f:null;}
+function cell(f){const v=fldVal(f);if(!v||v.value==null)return '<span class="muted">—</span>';return escHtml(String(v.value))+' '+confBadge(v.confidence);}
+function renderPlanned(data){
+  PLANNED=data;const recs=data.records||[];
+  set('plannedAsOf','data as of '+(data.generated||'?')+' · '+recs.length+' projects · refresh: scripts/research_planned.py');
+  const cols=[['operator','Operator'],['site','Site'],['region','Region'],['facility_mw','Facility MW'],['it_mw','IT MW'],['power_source','Power'],['energization','Timeline'],['status','Status']];
+  let html='<p class="muted" style="font-size:12px;margin:0 0 10px">'+escHtml(data.note||'')+' Confidence: '+confBadge('known')+' operator/official · '+confBadge('reported')+' press/analyst · '+confBadge('inferred')+' our estimate. This is a lead list to verify, not authoritative.</p>';
+  html+='<div class="table"><table><thead><tr>'+cols.map(c=>'<th'+(c[0]==='operator'||c[0]==='site'||c[0]==='region'||c[0]==='power_source'||c[0]==='status'?' style="text-align:left"':'')+'>'+c[1]+'</th>').join('')+'<th></th></tr></thead><tbody>';
+  recs.forEach((r,i)=>{
+    html+='<tr>'+cols.map(c=>{const left=(c[0]==='operator'||c[0]==='site'||c[0]==='region'||c[0]==='power_source'||c[0]==='status');const val=c[0]==='operator'?(escHtml(String(r.operator||'—'))):cell(r[c[0]]);return '<td'+(left?' style="text-align:left"':'')+'>'+val+'</td>';}).join('')+'<td><button class="plannedMore" data-i="'+i+'" style="min-height:26px;padding:3px 8px">details</button></td></tr>';
+    html+='<tr id="pdet'+i+'" style="display:none"><td colspan="'+(cols.length+1)+'" style="text-align:left;background:var(--panel3)"><div style="padding:8px 10px;font-size:12px" id="pdetc'+i+'"></div></td></tr>';
+  });
+  html+='</tbody></table></div>';
+  $('plannedBody').innerHTML=html;
+  document.querySelectorAll('.plannedMore').forEach(b=>b.addEventListener('click',()=>{const i=b.dataset.i;const row=$('pdet'+i);const show=row.style.display==='none';row.style.display=show?'':'none';if(show&&!row.dataset.built){row.dataset.built='1';$('pdetc'+i).innerHTML=detailHtml(recs[i]);}}));
+}
+function detailHtml(r){
+  let h='<div style="display:grid;grid-template-columns:auto 1fr;gap:3px 12px">';
+  Object.entries(r).forEach(([k,f])=>{if(k==='id'||k==='operator')return;const v=fldVal(f);if(!v)return;
+    h+='<div style="color:var(--muted)">'+escHtml(k.replace(/_/g,' '))+'</div><div>'+escHtml(String(v.value==null?'—':v.value))+' '+confBadge(v.confidence)+(v.source?' · <a href="'+escHtml(v.source)+'" target="_blank" rel="noopener">source</a>':'')+(v.note?' · <em>'+escHtml(v.note)+'</em>':'')+(v.as_of?' <span class="muted">('+escHtml(v.as_of)+')</span>':'')+'</div>';});
+  h+='</div>';return h;
+}
+async function showPlanned(){$('plannedModal').style.display='block';
+  if(PLANNED){renderPlanned(PLANNED);return;}
+  try{const r=await fetch('./data/planned_terrestrial.json',{cache:'no-cache'});if(!r.ok)throw 0;renderPlanned(await r.json());}
+  catch(e){$('plannedBody').innerHTML='<p class="muted">No planned-builds data found at <code>./data/planned_terrestrial.json</code>. On a served origin it loads automatically; from disk, use "load file" above, or run <code>scripts/research_planned.py terrestrial</code> locally and commit the result.</p>';set('plannedAsOf','no data loaded');}
+}
+$('openPlanned').addEventListener('click',showPlanned);
+$('plannedClose').addEventListener('click',()=>{$('plannedModal').style.display='none';});
+$('plannedModal').addEventListener('click',e=>{if(e.target===$('plannedModal'))$('plannedModal').style.display='none';});
+$('plannedFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{renderPlanned(JSON.parse(rd.result));}catch(err){alert('Could not read: '+(err&&err.message||err));}};rd.readAsText(f);});
+
 $('specClose').addEventListener('click',()=>{$('specModal').style.display='none'});
 $('specModal').addEventListener('click',e=>{if(e.target===$('specModal'))$('specModal').style.display='none'});
 $('specWindow').addEventListener('click',specWindow);
@@ -1678,7 +1723,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')$('specModal').style
 
 // ---------- testability tags (shared convention with the orbital tool) ----------
 document.querySelectorAll('.pane').forEach(p=>{const tab=p.id;p.querySelectorAll('input,select,button,output').forEach(e=>{if(!e.id)return;const lab=e.previousElementSibling&&e.previousElementSibling.tagName==='LABEL'?e.previousElementSibling.textContent.replace(/\s*(anchor|referential|baseline|scenario|derived)$/,'').trim():e.textContent.trim();e.dataset.testId=e.id;e.dataset.testKind=e.tagName==='OUTPUT'?'readout':e.tagName==='BUTTON'?'action':e.type==='number'?'number':e.type==='range'?'number':e.type==='text'?'text':e.type==='file'?'file':'select';e.dataset.testTab=tab;e.dataset.testLabel=lab||e.getAttribute('title')||e.id;});});
-document.querySelectorAll('.actions button, #beBox select, #beBox input, #beBox button, #testBox button, #specModal button, #specModal input').forEach(e=>{if(!e.id)return;e.dataset.testId=e.id;e.dataset.testKind=e.tagName==='BUTTON'?'action':e.type==='file'?'file':e.tagName==='SELECT'?'select':'number';e.dataset.testTab=e.closest('#beBox')?'modal:breakeven':e.closest('#specModal')?'modal:spec':'global';e.dataset.testLabel=(e.getAttribute('title')||e.textContent.trim()||e.id);});
+document.querySelectorAll('.actions button, #beBox select, #beBox input, #beBox button, #testBox button, #specModal button, #specModal input, #plannedModal button, #plannedModal input').forEach(e=>{if(!e.id)return;e.dataset.testId=e.id;e.dataset.testKind=e.tagName==='BUTTON'?'action':e.type==='file'?'file':e.tagName==='SELECT'?'select':'number';e.dataset.testTab=e.closest('#beBox')?'modal:breakeven':e.closest('#specModal')?'modal:spec':e.closest('#plannedModal')?'modal:planned':'global';e.dataset.testLabel=(e.getAttribute('title')||e.textContent.trim()||e.id);});
 document.querySelectorAll('.metric .v, .metric .l, .call, #tornadoNote, #footerNote, #vizTitle, #vizCaption, #archNote, #siteNote, #dataStatus, #platformNote, #regimeNote, #fleetNote, #bizNote, #demNote, #riskNote').forEach(e=>{if(!e.id)return;e.dataset.testId=e.id;e.dataset.testKind='readout';e.dataset.testTab=(e.id==='vizTitle'||e.id==='vizCaption')?'visuals':(e.id==='archNote'||e.id==='siteNote'||e.id==='dataStatus')?'site':(e.id==='platformNote'||e.id==='regimeNote')?'compute':(e.id==='fleetNote')?'fleet':(e.id==='bizNote')?'results':(e.id==='demNote')?'demand':(e.id==='riskNote')?'risk':'results';e.dataset.testLabel=({vizTitle:'Graphical model title',vizCaption:'Graphical model caption',archNote:'Archetype description',siteNote:'Site preset summary',dataStatus:'Data source status',platformNote:'Platform description',regimeNote:'Regime description',fleetNote:'Fleet allocation note',bizNote:'Business-case note',demNote:'Demand note',riskNote:'Risk note'}[e.id])||((e.parentElement.querySelector('.l')||e).textContent.trim())||e.id;});
 
 // populate compute catalogs
